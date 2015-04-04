@@ -1,0 +1,3 @@
+[submodule "OFuncLib"]
+	path = OFuncLib
+	url = https://github.com/OzieGamma/OFuncLib
