@@ -1,0 +1,9 @@
+
+addi t0 , zero , 65 
+addi t1 , zero , 0 
+addi t2 , t1 , 300 
+bge t1 , t2 , 4 
+stw t0 , t1 , 32768 
+addi t1 , t1 , 1 
+beq zero , zero , - 3 
+beq zero , zero , 0 

@@ -1,0 +1,52 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.31101.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "OFuncLib", "OFuncLib\Src\OFuncLib.fsproj", "{F74E4EA1-A3FA-494F-9FCC-1B8730C51671}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "OFuncLib.Test", "OFuncLib\Test\OFuncLib.Test.fsproj", "{7873D576-7EC3-4189-9370-876AA4181A03}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "OCA-AsmLib", "AsmLib\src\OCA-AsmLib.fsproj", "{6EBCD670-04E4-4A7D-A75F-95A12CEDB323}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "OCA-AsmLib.Test", "AsmLib\test\OCA-AsmLib.Test.fsproj", "{135D9CCE-1066-4514-A669-1353B8E4D632}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "OCA-Assembler", "Assembler\src\OCA-Assembler.fsproj", "{57B5E3EE-68DE-4EBE-85FB-005987FF7F27}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "OCA-Assembler.Test", "Assembler\test\OCA-Assembler.Test.fsproj", "{F8F78C36-9B81-4F06-AD8A-5CC6D5F01B6F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{6EBCD670-04E4-4A7D-A75F-95A12CEDB323}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6EBCD670-04E4-4A7D-A75F-95A12CEDB323}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6EBCD670-04E4-4A7D-A75F-95A12CEDB323}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6EBCD670-04E4-4A7D-A75F-95A12CEDB323}.Release|Any CPU.Build.0 = Release|Any CPU
+		{135D9CCE-1066-4514-A669-1353B8E4D632}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{135D9CCE-1066-4514-A669-1353B8E4D632}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{135D9CCE-1066-4514-A669-1353B8E4D632}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{135D9CCE-1066-4514-A669-1353B8E4D632}.Release|Any CPU.Build.0 = Release|Any CPU
+		{57B5E3EE-68DE-4EBE-85FB-005987FF7F27}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{57B5E3EE-68DE-4EBE-85FB-005987FF7F27}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{57B5E3EE-68DE-4EBE-85FB-005987FF7F27}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{57B5E3EE-68DE-4EBE-85FB-005987FF7F27}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F8F78C36-9B81-4F06-AD8A-5CC6D5F01B6F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F8F78C36-9B81-4F06-AD8A-5CC6D5F01B6F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F8F78C36-9B81-4F06-AD8A-5CC6D5F01B6F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F8F78C36-9B81-4F06-AD8A-5CC6D5F01B6F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F74E4EA1-A3FA-494F-9FCC-1B8730C51671}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F74E4EA1-A3FA-494F-9FCC-1B8730C51671}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F74E4EA1-A3FA-494F-9FCC-1B8730C51671}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F74E4EA1-A3FA-494F-9FCC-1B8730C51671}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7873D576-7EC3-4189-9370-876AA4181A03}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7873D576-7EC3-4189-9370-876AA4181A03}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7873D576-7EC3-4189-9370-876AA4181A03}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7873D576-7EC3-4189-9370-876AA4181A03}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,8 @@
+source https://nuget.org/api/v2
+
+nuget NUnit.Runners >= 2.6
+nuget NUnit >= 2.6
+nuget FAKE
+nuget FSharp.Formatting
+nuget FSharp.Formatting.CommandTool
+nuget RazorEngine

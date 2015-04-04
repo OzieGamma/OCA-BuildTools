@@ -1,0 +1,16 @@
+packages/
+gh-pages/
+
+docs/
+build/
+output/
+
+paket.exe
+
+[Rr]elease*/
+[Dd]ebug/
+[Bb]in/
+
+*.suo
+
+AssemblyInfo.fs
