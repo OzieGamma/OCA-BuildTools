@@ -28,11 +28,11 @@ type State(instr : Positioned<uint32> []) =
     let rfT = Array.init 5 (fun i -> uint32 i)
     
     let rom = 
-        Memory.rom "ROM 0" 4096u (fun addr -> 
+        Memory.rom "ROM-0" 4096u (fun addr -> 
             if addr < uint32 instr.Length then Ok(instr.[int addr] |> Position.remove)
             else Fail [ sprintf "No instruction here %d" addr ])
     
-    let ram = Memory.ram "RAM 0" 4096u
+    let ram = Memory.ram "RAM-0" 4096u
     
     let memory = 
         Bus.none

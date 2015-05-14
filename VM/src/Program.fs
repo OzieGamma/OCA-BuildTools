@@ -22,15 +22,25 @@ open OFuncLib
 open System
 open System.Net
 open System.Text
+open Unchecked
 
 let host = "http://localhost:5679/"
 
 let runVM (instrs : List<Positioned<uint32>>) : unit = 
     let state = new State(instrs |> Array.ofList)
     
-    let immValue i = 
+    let uintImm i = 
         match i with
-        | Value v -> v
+        | Value v -> 
+            if v < 0I then uint32 (~~~(int64 (v * -1I)) + 1L)
+            else uint32 v
+        | LabelRef _ -> failwith "Labels not supported yet."
+    
+    let intImm i = 
+        match i with
+        | Value v -> 
+            if v > bigint Int32.MaxValue then int (~~~(int64 (v * -1I)) + 1L)
+            else int v
         | LabelRef _ -> failwith "Labels not supported yet."
     
     let runInstr() = 
@@ -41,11 +51,11 @@ let runVM (instrs : List<Positioned<uint32>>) : unit =
         | Trap -> failwith "Trap not yet supported"
         | Switch _ -> failwith "Trap not yet supported"
         | Ldw(rS, rA, imm) -> 
-            let data = (state.readReg rA) + uint32 (immValue imm) |> state.readMemory
+            let data = (state.readReg rA) + uintImm imm |> state.readMemory
             data |> state.writeReg rS
         | Stw(rB, rA, imm) -> 
             let data = state.readReg rB
-            let addr = (state.readReg rA) + uint32 (immValue imm)
+            let addr = (state.readReg rA) + uintImm imm
             data |> state.writeMemory addr
         | Add(rS, rA, rB) -> (state.readReg rA) + (state.readReg rB) |> state.writeReg rS
         | Sub(rS, rA, rB) -> (state.readReg rA) - (state.readReg rB) |> state.writeReg rS
@@ -79,53 +89,53 @@ let runVM (instrs : List<Positioned<uint32>>) : unit =
             (if (state.readReg rA) <> (state.readReg rB) then 1u
              else 0u)
             |> state.writeReg rS
-        | Addi(rS, rA, imm) -> (state.readReg rA) + uint32 (immValue imm) |> state.writeReg rS
-        | Subi(rS, rA, imm) -> (state.readReg rA) - uint32 (immValue imm) |> state.writeReg rS
-        | Andi(rS, rA, imm) -> (state.readReg rA) &&& uint32 (immValue imm) |> state.writeReg rS
-        | Ori(rS, rA, imm) -> (state.readReg rA) ||| uint32 (immValue imm) |> state.writeReg rS
-        | Xori(rS, rA, imm) -> (state.readReg rA) ^^^ uint32 (immValue imm) |> state.writeReg rS
-        | Nori(rS, rA, imm) -> ~~~((state.readReg rA) ||| uint32 (immValue imm)) |> state.writeReg rS
-        | Slli(rS, rA, imm) -> (state.readReg rA) <<< int (immValue imm) |> state.writeReg rS
-        | Srli(rS, rA, imm) -> (state.readReg rA) >>> int (immValue imm) |> state.writeReg rS
+        | Addi(rS, rA, imm) -> (state.readReg rA) + uintImm imm |> state.writeReg rS
+        | Subi(rS, rA, imm) -> (state.readReg rA) - uintImm imm |> state.writeReg rS
+        | Andi(rS, rA, imm) -> (state.readReg rA) &&& uintImm imm |> state.writeReg rS
+        | Ori(rS, rA, imm) -> (state.readReg rA) ||| uintImm imm |> state.writeReg rS
+        | Xori(rS, rA, imm) -> (state.readReg rA) ^^^ uintImm imm |> state.writeReg rS
+        | Nori(rS, rA, imm) -> ~~~((state.readReg rA) ||| uintImm imm) |> state.writeReg rS
+        | Slli(rS, rA, imm) -> (state.readReg rA) <<< intImm imm |> state.writeReg rS
+        | Srli(rS, rA, imm) -> (state.readReg rA) >>> intImm imm |> state.writeReg rS
         | Compgei(rS, rA, imm) -> 
-            (if (int (state.readReg rA)) >= (int (immValue imm)) then 1u
+            (if (int (state.readReg rA)) >= (intImm imm) then 1u
              else 0u)
             |> state.writeReg rS
         | Complti(rS, rA, imm) -> 
-            (if (int (state.readReg rA)) < (int (immValue imm)) then 1u
+            (if (int (state.readReg rA)) < (intImm imm) then 1u
              else 0u)
             |> state.writeReg rS
         | Compgeiu(rS, rA, imm) -> 
-            (if (state.readReg rA) >= uint32 (immValue imm) then 1u
+            (if (state.readReg rA) >= uintImm imm then 1u
              else 0u)
             |> state.writeReg rS
         | Compltiu(rS, rA, imm) -> 
-            (if (state.readReg rA) < uint32 (immValue imm) then 1u
+            (if (state.readReg rA) < uintImm imm then 1u
              else 0u)
             |> state.writeReg rS
         | Compeqi(rS, rA, imm) -> 
-            (if (state.readReg rA) = uint32 (immValue imm) then 1u
+            (if (state.readReg rA) = uintImm imm then 1u
              else 0u)
             |> state.writeReg rS
         | Compnei(rS, rA, imm) -> 
-            (if (state.readReg rA) <> uint32 (immValue imm) then 1u
+            (if (state.readReg rA) <> uintImm imm then 1u
              else 0u)
             |> state.writeReg rS
         | Bge(rA, rB, imm) -> 
-            if (int (state.readReg rA)) >= (int (state.readReg rB)) then state.pc <- state.pc + (uint32 (immValue imm))
+            if (int (state.readReg rA)) >= (int (state.readReg rB)) then state.pc <- state.pc + (uintImm imm)
         | Blt(rA, rB, imm) -> 
-            if (int (state.readReg rA)) < (int (state.readReg rB)) then state.pc <- state.pc + (uint32 (immValue imm))
+            if (int (state.readReg rA)) < (int (state.readReg rB)) then state.pc <- state.pc + (uintImm imm)
         | Bgeu(rA, rB, imm) -> 
-            if (state.readReg rA) >= (state.readReg rB) then state.pc <- state.pc + (uint32 (immValue imm))
+            if (state.readReg rA) >= (state.readReg rB) then state.pc <- state.pc + (uintImm imm)
         | Bltu(rA, rB, imm) -> 
-            if (state.readReg rA) < (state.readReg rB) then state.pc <- state.pc + (uint32 (immValue imm))
+            if (state.readReg rA) < (state.readReg rB) then state.pc <- state.pc + (uintImm imm)
         | Beq(rA, rB, imm) -> 
-            if (state.readReg rA) = (state.readReg rB) then state.pc <- state.pc + (uint32 (immValue imm))
+            if (state.readReg rA) = (state.readReg rB) then state.pc <- state.pc + (uintImm imm)
         | Bne(rA, rB, imm) -> 
-            if (state.readReg rA) <> (state.readReg rB) then state.pc <- state.pc + (uint32 (immValue imm))
+            if (state.readReg rA) <> (state.readReg rB) then state.pc <- state.pc + (uintImm imm)
         | Calli imm -> 
             state.writeReg RA state.pc
-            state.pc <- state.pc + (uint32 (immValue imm))
+            state.pc <- state.pc + (uintImm imm)
         | Callr rA -> 
             state.writeReg RA state.pc
             state.pc <- state.readReg rA
@@ -133,7 +143,7 @@ let runVM (instrs : List<Positioned<uint32>>) : unit =
         | _ -> failwith "instr not implemented %A" instr
     
     let running = ref true
-
+    
     let listener (handler : HttpListenerRequest -> HttpListenerResponse -> Async<unit>) = 
         let listener = new HttpListener()
         listener.Prefixes.Add host
@@ -149,16 +159,18 @@ let runVM (instrs : List<Positioned<uint32>>) : unit =
     let output (req : HttpListenerRequest) = 
         let url = Uri(host).MakeRelativeUri(req.Url).OriginalString
         printfn "Requested : '%s'" url
-
-        match url with
-        | "" ->
-            ("text/html", IO.File.ReadAllText "src\UI.html")
-        | "next" -> 
+        match url.Split([| '/' |], StringSplitOptions.RemoveEmptyEntries) |> List.ofArray with
+        | [] -> ("text/html", IO.File.ReadAllText "src\UI.html")
+        | "next" :: [] -> 
             runInstr()
             ("text/json", state.jsonify)
-        | "state" ->
+        | "run" :: num :: [] ->
+            let runs = Int32.Parse num
+            for i = 1 to runs do
+                runInstr()
             ("text/json", state.jsonify)
-        | "stop" ->
+        | "state" :: [] -> ("text/json", state.jsonify)
+        | "stop" :: [] -> 
             running := false
             ("text/html", "Stopped.")
         | _ -> ("text/html", "Invalid request")
@@ -171,7 +183,6 @@ let runVM (instrs : List<Positioned<uint32>>) : unit =
             resp.OutputStream.Write(bytes, 0, txt.Length)
             resp.OutputStream.Close()
         })
-
     while !running do
         ()
 

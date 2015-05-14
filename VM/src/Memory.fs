@@ -42,7 +42,7 @@ module Memory =
         
         let write addr value = 
             if inMemory addr then 
-                mem.[0] <- value
+                mem.[int addr] <- value
                 Ok()
             else Fail [ sprintf "Can't write RAM %s at address %d with value %d" name addr value ]
         
