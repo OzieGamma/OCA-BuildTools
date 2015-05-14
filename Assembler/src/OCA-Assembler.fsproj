@@ -25,8 +25,8 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
     <DocumentationFile>bin\Debug\OCA.Assembler.XML</DocumentationFile>
     <Prefer32Bit>true</Prefer32Bit>
-    <StartWorkingDirectory>C:\Users\Oswald\Documents\GitHub\OCA\BuildTools\Assembler\</StartWorkingDirectory>
-    <StartArguments>-b bootloader.bin -f bootloader.desm</StartArguments>
+    <StartWorkingDirectory>C:\Users\Oswald\Documents\GitHub\OCA-BootLoader\</StartWorkingDirectory>
+    <StartArguments>-b bootloader.bin -f bootloader.desassembled</StartArguments>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>

@@ -420,18 +420,5 @@ module Instr =
         | Not(rS, rA) -> Ok(Nor(rS, rA, rA) :: [])
         | Br i -> Ok(Beq(Zero, Zero, i) :: [])
         | Ret -> Ok(Callr(RA) :: [])
-        | Text s -> 
-            System.Text.Encoding.ASCII.GetBytes(s)
-            |> List.ofArray
-            |> List.fold (fun (acc, count) c -> 
-                   match acc, count with
-                   | (_ :: tail), 0 -> ((uint32 c <<< 24) :: tail, 1)
-                   | (head :: tail), 1 -> ((head ||| (uint32 c <<< 16)) :: tail, 2)
-                   | (head :: tail), 2 -> ((head ||| (uint32 c <<< 8)) :: tail, 3)
-                   | (head :: tail), 3 -> (0u :: (head ||| uint32 c) :: tail, 0)
-                   | _ -> failwith "Invalid state Instr.expandMacros") (0u :: [], 0)
-            |> (fun (list, _) -> list)
-            |> List.rev
-            |> List.map (fun i -> Instr.ImmWord(Value(bigint i)))
-            |> Ok
+        | Text s -> OString.toWords s |> Attempt.map (List.map (fun i -> Instr.ImmWord(Value(bigint i))))
         | _ -> Ok(instr :: [])

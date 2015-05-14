@@ -5,13 +5,14 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>135d9cce-1066-4514-a669-1353b8e4d632</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <RootNamespace>OCA.AsmLib.Test</RootNamespace>
-    <AssemblyName>OCA.AsmLib.Test</AssemblyName>
+    <ProjectGuid>{4959f07e-7335-42ff-9f31-5bb3520afe2f}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>OCA.VM</RootNamespace>
+    <AssemblyName>OCA.VM</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <TargetFSharpCoreVersion>4.3.1.0</TargetFSharpCoreVersion>
-    <Name>OCA-AsmLib.Test</Name>
+    <Name>OCA-VM</Name>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -21,7 +22,11 @@
     <OutputPath>bin\Debug\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
-    <DocumentationFile>bin\Debug\OCA.AsmLib.Test.XML</DocumentationFile>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DocumentationFile>bin\Debug\OCA.VM.XML</DocumentationFile>
+    <Prefer32Bit>true</Prefer32Bit>
+    <StartWorkingDirectory>C:\Users\Oswald\Documents\GitHub\OCA-BuildTools\VM\</StartWorkingDirectory>
+    <StartArguments>-f ..\..\OCA-BootLoader\bootloader.asm</StartArguments>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -30,27 +35,12 @@
     <OutputPath>bin\Release\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
-    <DocumentationFile>bin\Release\OCA.AsmLib.Test.XML</DocumentationFile>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DocumentationFile>bin\Release\OCA.VM.XML</DocumentationFile>
+    <Prefer32Bit>true</Prefer32Bit>
+    <StartWorkingDirectory>C:\Users\Oswald\Documents\GitHub\OCA-VM\examples\</StartWorkingDirectory>
+    <StartArguments>.\test.asm</StartArguments>
   </PropertyGroup>
-  <ItemGroup>
-    <Reference Include="mscorlib" />
-    <Reference Include="FSharp.Core, Version=$(TargetFSharpCoreVersion), Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Numerics" />
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="PositionTest.fs" />
-    <Compile Include="OStringTest.fs" />
-    <Compile Include="LexerTest.fs" />
-    <Compile Include="RegTest.fs" />
-    <Compile Include="ImmTest.fs" />
-    <Compile Include="InstrTest.fs" />
-    <Compile Include="Kelos16Test.fs" />
-    <Compile Include="TransformTest.fs" />
-  </ItemGroup>
   <PropertyGroup>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
   </PropertyGroup>
@@ -67,6 +57,32 @@
     </Otherwise>
   </Choose>
   <Import Project="$(FSharpTargetsPath)" />
+  <ItemGroup>
+    <Compile Include="Memory.fs" />
+    <Compile Include="Bus.fs" />
+    <Compile Include="State.fs" />
+    <Compile Include="Program.fs" />
+    <None Include="UI.html" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="mscorlib" />
+    <Reference Include="FSharp.Core, Version=$(TargetFSharpCoreVersion), Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Numerics" />
+    <ProjectReference Include="..\..\AsmLib\src\OCA-AsmLib.fsproj">
+      <Name>OCA-AsmLib</Name>
+      <Project>{6ebcd670-04e4-4a7d-a75f-95a12cedb323}</Project>
+      <Private>True</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\..\OFuncLib\Src\OFuncLib.fsproj">
+      <Name>OFuncLib</Name>
+      <Project>{f74e4ea1-a3fa-494f-9fcc-1b8730c51671}</Project>
+      <Private>True</Private>
+    </ProjectReference>
+  </ItemGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
@@ -74,23 +90,4 @@
   <Target Name="AfterBuild">
   </Target>
   -->
-  <ItemGroup>
-    <ProjectReference Include="..\..\OFuncLib\Src\OFuncLib.fsproj">
-      <Name>OFuncLib</Name>
-      <Project>{f74e4ea1-a3fa-494f-9fcc-1b8730c51671}</Project>
-      <Private>True</Private>
-    </ProjectReference>
-    <ProjectReference Include="..\src\OCA-AsmLib.fsproj">
-      <Name>OCA-AsmLib</Name>
-      <Project>{6ebcd670-04e4-4a7d-a75f-95a12cedb323}</Project>
-      <Private>True</Private>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <Reference Include="nunit.framework">
-      <HintPath>..\..\packages\NUnit\lib\nunit.framework.dll</HintPath>
-      <Private>True</Private>
-      <Paket>True</Paket>
-    </Reference>
-  </ItemGroup>
 </Project>

@@ -5,13 +5,13 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>135d9cce-1066-4514-a669-1353b8e4d632</ProjectGuid>
+    <ProjectGuid>{0ccf917f-3bab-412d-8c26-b16d8aebe3ce}</ProjectGuid>
     <OutputType>Library</OutputType>
-    <RootNamespace>OCA.AsmLib.Test</RootNamespace>
-    <AssemblyName>OCA.AsmLib.Test</AssemblyName>
+    <RootNamespace>OCA.VM.Test</RootNamespace>
+    <AssemblyName>OCA.VM.Test</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <TargetFSharpCoreVersion>4.3.1.0</TargetFSharpCoreVersion>
-    <Name>OCA-AsmLib.Test</Name>
+    <Name>OCA-VM.Test</Name>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -21,7 +21,7 @@
     <OutputPath>bin\Debug\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
-    <DocumentationFile>bin\Debug\OCA.AsmLib.Test.XML</DocumentationFile>
+    <DocumentationFile>bin\Debug\OCA.VM.Test.XML</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -30,7 +30,7 @@
     <OutputPath>bin\Release\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
-    <DocumentationFile>bin\Release\OCA.AsmLib.Test.XML</DocumentationFile>
+    <DocumentationFile>bin\Release\OCA.VM.Test.XML</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="mscorlib" />
@@ -42,14 +42,24 @@
     <Reference Include="System.Numerics" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="PositionTest.fs" />
-    <Compile Include="OStringTest.fs" />
-    <Compile Include="LexerTest.fs" />
-    <Compile Include="RegTest.fs" />
-    <Compile Include="ImmTest.fs" />
-    <Compile Include="InstrTest.fs" />
-    <Compile Include="Kelos16Test.fs" />
-    <Compile Include="TransformTest.fs" />
+    <Compile Include="DummyTest.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\AsmLib\src\OCA-AsmLib.fsproj">
+      <Name>OCA-AsmLib</Name>
+      <Project>{6ebcd670-04e4-4a7d-a75f-95a12cedb323}</Project>
+      <Private>True</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\..\OFuncLib\Src\OFuncLib.fsproj">
+      <Name>OFuncLib</Name>
+      <Project>{f74e4ea1-a3fa-494f-9fcc-1b8730c51671}</Project>
+      <Private>True</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\src\OCA-VM.fsproj">
+      <Name>OCA-VM</Name>
+      <Project>{4959f07e-7335-42ff-9f31-5bb3520afe2f}</Project>
+      <Private>True</Private>
+    </ProjectReference>
   </ItemGroup>
   <PropertyGroup>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
@@ -74,18 +84,6 @@
   <Target Name="AfterBuild">
   </Target>
   -->
-  <ItemGroup>
-    <ProjectReference Include="..\..\OFuncLib\Src\OFuncLib.fsproj">
-      <Name>OFuncLib</Name>
-      <Project>{f74e4ea1-a3fa-494f-9fcc-1b8730c51671}</Project>
-      <Private>True</Private>
-    </ProjectReference>
-    <ProjectReference Include="..\src\OCA-AsmLib.fsproj">
-      <Name>OCA-AsmLib</Name>
-      <Project>{6ebcd670-04e4-4a7d-a75f-95a12cedb323}</Project>
-      <Private>True</Private>
-    </ProjectReference>
-  </ItemGroup>
   <ItemGroup>
     <Reference Include="nunit.framework">
       <HintPath>..\..\packages\NUnit\lib\nunit.framework.dll</HintPath>

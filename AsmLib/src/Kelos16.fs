@@ -215,13 +215,13 @@ let public labelResolver (absoluteLabel : Imm -> Attempt<bigint>) (relativeLabel
     | Compltiu(rS, rA, i) -> absoluteLabel i |> _2RegImm RCompltiu rS rA
     | Compeqi(rS, rA, i) -> absoluteLabel i |> _2RegImm RCompeqi rS rA
     | Compnei(rS, rA, i) -> absoluteLabel i |> _2RegImm RCompnei rS rA
-    | Bge(rA, rB, i) -> relativeLabel address i |> _2RegImm RBge rA rB
-    | Blt(rA, rB, i) -> relativeLabel address i |> _2RegImm RBlt rA rB
-    | Bgeu(rA, rB, i) -> relativeLabel address i |> _2RegImm RBgeu rA rB
-    | Bltu(rA, rB, i) -> relativeLabel address i |> _2RegImm RBltu rA rB
-    | Beq(rA, rB, i) -> relativeLabel address i |> _2RegImm RBeq rA rB
-    | Bne(rA, rB, i) -> relativeLabel address i |> _2RegImm RBne rA rB
-    | Calli i -> relativeLabel address i |> _Imm RCalli
+    | Bge(rA, rB, i) -> relativeLabel (address + 1I) i |> _2RegImm RBge rA rB
+    | Blt(rA, rB, i) -> relativeLabel (address + 1I) i |> _2RegImm RBlt rA rB
+    | Bgeu(rA, rB, i) -> relativeLabel (address + 1I) i |> _2RegImm RBgeu rA rB
+    | Bltu(rA, rB, i) -> relativeLabel (address + 1I) i |> _2RegImm RBltu rA rB
+    | Beq(rA, rB, i) -> relativeLabel (address + 1I) i |> _2RegImm RBeq rA rB
+    | Bne(rA, rB, i) -> relativeLabel (address + 1I) i |> _2RegImm RBne rA rB
+    | Calli i -> relativeLabel (address + 1I) i |> _Imm RCalli
     | Callr rA -> _Reg RCallr rA
     | ImmWord i -> absoluteLabel i |> _Imm RImmWord
     | _ -> Fail [ sprintf "Invalid state. Instr %A is not supported by Kelos16 and should be polyfilled" instr ]

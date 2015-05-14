@@ -1,6 +1,6 @@
 // --------------------------------------------------------------------------------------------------------------------
 // <copyright file="Transform.fs" company="Oswald Maskens">
-//   Copyright 2014 Oswald Maskens
+//   Copyright 2014-2015 Oswald Maskens
 //   
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.

@@ -122,7 +122,7 @@ let binData =
     
     let bin2 = 
         [ Label "end"
-          Br(LabelRef("end", 0I)) ], [ Beq(Zero, Zero, Value 0I) ]
+          Br(LabelRef("end", 0I)) ], [ Beq(Zero, Zero, Value -1I) ]
     
     let bin3 = 
         [ Ldw(RA, Zero, LabelRef("RAM", 2I))

@@ -1,4 +1,4 @@
-// Heavily inspired from https://github.com/fsharp/FAKE/blob/master/build.fsx (Apache 2.0)
+201// Heavily inspired from https://github.com/fsharp/FAKE/blob/master/build.fsx (Apache 2.0)
 
 #I @"packages/FAKE/tools/"
 #I @"packages/FSharp.Formatting/lib/net40"
@@ -53,6 +53,9 @@ Target "AssemblyInfo" (fun _ ->
     [ Attribute.Title "Assembler for OCA"
       Attribute.Description projectSummary
       Attribute.InternalsVisibleTo "OCA.Assembler.Test" ] @ common |> CreateFSharpAssemblyInfo "./Assembler/src/AssemblyInfo.fs"
+    [ Attribute.Title "VM for OCA"
+      Attribute.Description projectSummary
+      Attribute.InternalsVisibleTo "OCA.VM.Test" ] @ common |> CreateFSharpAssemblyInfo "./VM/src/AssemblyInfo.fs"
 )
 
 Target "Build" (fun _ -> MSBuildRelease binBuildDir "Build" ["OCA-BuildTools.sln"] |> Log "Build-Output: ")

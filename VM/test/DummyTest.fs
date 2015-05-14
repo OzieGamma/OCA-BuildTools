@@ -1,4 +1,4 @@
-﻿module OCA.Assembler.DummyTest
+﻿module OCA.VM.DummyTest
 
 open NUnit.Framework
 open OFuncLib

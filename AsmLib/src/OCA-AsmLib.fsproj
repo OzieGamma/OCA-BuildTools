@@ -53,6 +53,7 @@
   <ItemGroup>
     <None Include="paket.references" />
     <Compile Include="Position.fs" />
+    <Compile Include="OString.fs" />
     <Compile Include="Lexer.fs" />
     <Compile Include="Reg.fs" />
     <Compile Include="Imm.fs" />
@@ -60,6 +61,7 @@
     <Compile Include="Kelos16.fs" />
     <Compile Include="Transform.fs" />
     <Compile Include="Pretty.fs" />
+    <Compile Include="FileHelper.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="mscorlib" />
