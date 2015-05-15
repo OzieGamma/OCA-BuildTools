@@ -26,6 +26,7 @@ type State(instr : Positioned<uint32> []) =
     let ea = ref 0u
     let rfS = Array.init 5 (fun i -> uint32 i)
     let rfT = Array.init 5 (fun i -> uint32 i)
+    let breakpoints = new System.Collections.Generic.HashSet<uint32>()
     
     let rom = 
         Memory.rom "ROM-0" 4096u (fun addr -> 
@@ -74,6 +75,13 @@ type State(instr : Positioned<uint32> []) =
             msg |> List.iter (fun m -> printfn "%s" m)
             failwith "Memory failure"
     
+    member this.toggleBreakpoint addr = 
+        if not (breakpoints.Contains addr) then this.addBreakpoint addr
+        else this.removeBreakpoint addr
+    
+    member this.addBreakpoint addr = breakpoints.Add addr |> ignore
+    member this.removeBreakpoint addr = breakpoints.Remove addr |> ignore
+    member this.isBreakpoint () = breakpoints.Contains (this.pc)
     member this.jsonify = 
         let watch = new System.Diagnostics.Stopwatch()
         watch.Start()
@@ -85,7 +93,7 @@ type State(instr : Positioned<uint32> []) =
             sb.Append(",\"t").Append(i).Append("\":").Append(this.readReg (TReg(uint16 i))) |> ignore
         sb.Append("},\"mem\":{") |> ignore
         memory.jsonify sb
-        sb.Append "}}" |> ignore
+        sb.Append("}, \"breakpoints\":[").Append(System.String.Join(",", breakpoints)).Append("]}") |> ignore
         let json = sb.ToString()
         watch.Stop()
         printfn "Generation time %d ms" watch.ElapsedMilliseconds

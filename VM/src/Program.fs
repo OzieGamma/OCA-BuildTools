@@ -164,10 +164,20 @@ let runVM (instrs : List<Positioned<uint32>>) : unit =
         | "next" :: [] -> 
             runInstr()
             ("text/json", state.jsonify)
-        | "run" :: num :: [] ->
-            let runs = Int32.Parse num
-            for i = 1 to runs do
+        | "run" :: num :: [] -> 
+            let watch = System.Diagnostics.Stopwatch.StartNew()
+            let runs = UInt32.Parse num
+            let mutable i = 1u
+            runInstr() // Avoid getting stuck on breakpoint
+            while i < runs && not (state.isBreakpoint ()) do
                 runInstr()
+                i <- i + 1u
+            watch.Stop ()
+            printfn "Actually run: %d in %dms" i watch.ElapsedMilliseconds
+            ("text/json", state.jsonify)
+        | "br" :: num :: [] -> 
+            let point = UInt32.Parse num
+            state.toggleBreakpoint point
             ("text/json", state.jsonify)
         | "state" :: [] -> ("text/json", state.jsonify)
         | "stop" :: [] -> 

@@ -22,9 +22,12 @@
     <div id="main" class="container-fluid">
         <div class="row menu">
             <div class="col-md-12">
-                <button class="btn btn-default" id="next">Next</button>
-                <button class="btn btn-default" id="go">Go</button>
-                <button class="btn btn-danger" id="stop">Stop</button>
+                <div class="btn-group" role="group" aria-label="...">
+                    <button class="btn btn-default" id="next"><span class="glyphicon glyphicon-step-forward" aria-hidden="true"></span></button>
+                    <button class="btn btn-default" id="go"><span class="glyphicon glyphicon-play" aria-hidden="true"></span></button>
+                    <button class="btn btn-warning" id="pause"><span class="glyphicon glyphicon-pause" aria-hidden="true"></span></button>
+                    <button class="btn btn-danger" id="stop"><span class="glyphicon glyphicon-off" aria-hidden="true"></span></button>
+                </div>
             </div>
         </div>
         <div class="row" id="row">
@@ -62,8 +65,78 @@
             return '0x' + padLeft(i.toString(16), length, '0');
         }
 
+        var color = function (data, absAddr) {
+            var isBr = data.breakpoints.indexOf(absAddr) !== -1;
+            if (data.reg['PC'] === absAddr) {
+                if (isBr) {
+                    return 'danger';
+                } else {
+                    return 'success';
+                }
+            } else {
+                if (isBr) {
+                    return 'warning';
+                } else {
+                    return '';
+                }
+            }
+        }
+
         var oldData;
-        var oldPcId;
+
+        var updateUI = function (data) {
+            for (var reg in data.reg) {
+                if (data.reg.hasOwnProperty(reg)) {
+                    if (data.reg[reg] !== oldData.reg[reg]) {
+                        $('#reg-dec-' + reg).html(data.reg[reg]);
+                        $('#reg-hex-' + reg).html(formatHex(data.reg[reg], 8));
+                    }
+                }
+            }
+
+            for (var memory in data.mem) {
+                if (data.mem.hasOwnProperty(memory) && memory !== 'end') {
+                    var start = data.mem[memory].start;
+                    var type = data.mem[memory].value.type;
+                    var addr;
+                    if (type === 'ROM') {
+                        var romData = data.mem[memory].value.data;
+
+                        for (addr = 0; addr < romData.length; addr += 1) {
+                            if (((data.reg['PC'] === addr + start) !== (oldData.reg['PC'] !== addr + start)) ||
+                                ((oldData.breakpoints.indexOf(start + addr) === -1) !== (data.breakpoints.indexOf(start + addr) !== -1))) {
+                                $('#' + memory + '-row-' + addr).removeClass('success');
+                                $('#' + memory + '-row-' + addr).removeClass('danger');
+                                $('#' + memory + '-row-' + addr).removeClass('warning');
+                                $('#' + memory + '-row-' + addr).addClass(color(data, start + addr));
+                            }
+                        }
+                    } else if (type === 'RAM') {
+                        var ramData = data.mem[memory].value.data;
+
+                        for (addr = 0; addr < ramData.length; addr += 1) {
+                            if (((data.reg['PC'] === addr + start) !== (oldData.reg['PC'] !== addr + start)) ||
+                                ((oldData.breakpoints.indexOf(start + addr) === -1) !== (data.breakpoints.indexOf(start + addr) !== -1))) {
+                                $('#' + memory + '-row-' + addr).removeClass('success');
+                                $('#' + memory + '-row-' + addr).removeClass('danger');
+                                $('#' + memory + '-row-' + addr).removeClass('warning');
+                                $('#' + memory + '-row-' + addr).addClass(color(data, start + addr));
+                            }
+
+                            if (ramData[addr] !== oldData.mem[memory].value.data[addr]) {
+                                $('#mem-' + memory + '-dec-' + addr).html(ramData[addr]);
+                                $('#mem-' + memory + '-hex-' + addr).html(formatHex(ramData[addr], 8));
+                            }
+                        }
+                    } else if (type === 'VGA') {
+                    } else {
+                        alert('Unsupported memory type !!! ' + type);
+                    }
+                }
+            }
+
+            oldData = data;
+        }
 
         var buildUI = function (data) {
             oldData = data;
@@ -99,22 +172,18 @@
                     var start = data.mem[memory].start;
                     var type = data.mem[memory].value.type;
                     var addr;
+
                     if (type === 'ROM') {
                         var romData = data.mem[memory].value.data;
 
                         memContentsHtml += '<table class="table table-striped table-bordered table-condensed"><thead><tr><th>' + memory + '</th><th>Dec</th><th>Hex</th><th>Instr</th></tr></thead><tbody>';
                         for (addr = 0; addr < romData.length; addr += 1) {
-                            if (data.reg['PC'] === start + addr) {
-                                memContentsHtml += '<tr class="success" id="' + memory + '-row-' + addr + '">';
-                                oldPcId = '#' + memory + '-row-' + addr;
-                            } else {
-                                memContentsHtml += '<tr id="' + memory + '-row-' + addr + '">';
-                            }
+                            memContentsHtml += '<tr class="' + color(data, start + addr) + '" id="' + memory + '-row-' + addr + '">';
 
                             if (romData[addr] === -1) {
-                                memContentsHtml += '<td>0x' + formatHex(addr + start, 4) + '</td><td>N/A</td><td>N/A</td><td>N/A</td>';
+                                memContentsHtml += '<td class="addr" data-addr="' + addr + '">0x' + formatHex(addr + start, 4) + '</td><td>N/A</td><td>N/A</td><td>N/A</td>';
                             } else {
-                                memContentsHtml += '<td>0x' + formatHex(addr + start, 4) + '</td><td>' + romData[addr].v + '</td><td>' + formatHex(romData[addr].v, 8) + '</td><td>' + romData[addr].i + '</td>';
+                                memContentsHtml += '<td  class="addr" data-addr="' + addr + '">0x' + formatHex(addr + start, 4) + '</td><td>' + romData[addr].v + '</td><td>' + formatHex(romData[addr].v, 8) + '</td><td>' + romData[addr].i + '</td>';
                             }
                         }
 
@@ -122,16 +191,10 @@
                     } else if (type === 'RAM') {
                         var ramData = data.mem[memory].value.data;
 
-                        memContentsHtml += '<div class="col-md-5"><table class="table table-striped table-bordered table-condensed"><thead><tr><th>' + memory + '</th><th>Dec</th><th>Hex</th></tr></thead><tbody>';
+                        memContentsHtml += '<table class="table table-striped table-bordered table-condensed"><thead><tr><th>' + memory + '</th><th>Dec</th><th>Hex</th></tr></thead><tbody>';
                         for (addr = 0; addr < ramData.length; addr += 1) {
-                            if (data.reg['PC'] === start + addr) {
-                                memContentsHtml += '<tr class="success" id="' + memory + '-row-' + addr + '">';
-                                oldPcId = '#' + memory + '-row-' + addr;
-                            } else {
-                                memContentsHtml += '<tr id="' + memory + '-row-' + addr + '">';
-                            }
-
-                            memContentsHtml += '<td>0x' + formatHex(addr + start, 4) + '</td><td id="mem-' + memory + '-dec-' + addr + '">' + ramData[addr] + '</td><td id="mem-' + memory + '-hex-' + addr + '">' + formatHex(ramData[addr], 8) + '</td>';
+                            memContentsHtml += '<tr class="' + color(data, start + addr) + '" id="' + memory + '-row-' + addr + '">';
+                            memContentsHtml += '<td class="addr" data-addr="' + addr + '">0x' + formatHex(addr + start, 4) + '</td><td id="mem-' + memory + '-dec-' + addr + '">' + ramData[addr] + '</td><td id="mem-' + memory + '-hex-' + addr + '">' + formatHex(ramData[addr], 8) + '</td>';
                         }
 
                         memContentsHtml += '</tbody></table>';
@@ -147,89 +210,100 @@
 
             $('#mem-headers').html(memHeadersHtml);
             $('#mem-contents').html(memContentsHtml);
-        }
 
-        var updateUI = function (data) {
-            for (var reg in data.reg) {
-                if (data.reg.hasOwnProperty(reg)) {
-                    if (data.reg[reg] !== oldData.reg[reg]) {
-                        $('#reg-dec-' + reg).html(data.reg[reg]);
-                        $('#reg-hex-' + reg).html(formatHex(data.reg[reg], 8));
-                    }
+            // Setup breakpoint logic
+            $('.addr').each(function () {
+                $(this).click(function () {
+                    $.post('/br/' + $(this).attr('data-addr'), updateUI);
+                });
+            });
+
+
+            // Control bar logic
+            var running = false;
+            var startRunning = function () {
+                running = true;
+                $('#next').prop('disabled', true);
+                $('#go').prop('disabled', true);
+                $('#pause').prop('disabled', false);
+            }
+
+            var doneRunnig = function () {
+                running = false;
+                $('#next').prop('disabled', false);
+                $('#go').prop('disabled', false);
+                $('#pause').prop('disabled', true);
+            }
+
+            var next = function () {
+                if (!running) {
+                    startRunning();
+                    $.post('/next', function (data) {
+                        updateUI(data);
+                        doneRunnig();
+                    });
                 }
             }
 
-            for (var memory in data.mem) {
-                if (data.mem.hasOwnProperty(memory) && memory !== 'end') {
-                    var start = data.mem[memory].start;
-                    var type = data.mem[memory].value.type;
-                    var addr;
-                    if (type === 'ROM') {
-                        var romData = data.mem[memory].value.data;
+            var loop = false;
 
-                        for (addr = 0; addr < romData.length; addr += 1) {
-                            if ((data.reg['PC'] !== oldData.reg['PC']) && (addr + start === data.reg['PC'])) {
-                                $(oldPcId).removeClass('success');
-                                $('#' + memory + '-row-' + addr).addClass('success');
-                                oldPcId = '#' + memory + '-row-' + addr;
-                            }
+            var go = function () {
+                var run = function (cb) {
+                    $.post('/run/10000', function (data) {
+                        updateUI(data);
+
+                        if (data.breakpoints.indexOf(data.reg['PC']) !== -1) {
+                            loop = false;
                         }
-                    } else if (type === 'RAM') {
-                        var ramData = data.mem[memory].value.data;
 
-                        for (addr = 0; addr < ramData.length; addr += 1) {
-                            if ((data.reg['PC'] !== oldData.reg['PC']) && (addr + start === data.reg['PC'])) {
-                                $(oldPcId).removeClass('success');
-                                $('#' + memory + '-row-' + addr).addClass('success');
-                                oldPcId = '#' + memory + '-row-' + addr;
-                            }
-
-                            if (ramData[addr] !== oldData.mem[memory].value.data[addr]) {
-                                $('#mem-' + memory + '-dec-' + addr).html(ramData[addr]);
-                                $('#mem-' + memory + '-hex-' + addr).html(formatHex(ramData[addr], 8));
-                            }
+                        if (loop) {
+                            setTimeout(function () {
+                                run(cb);
+                            }, 10);
+                        } else {
+                            cb();
                         }
-                    } else if (type === 'VGA') {
-                    } else {
-                        alert('Unsupported memory type !!! ' + type);
-                    }
+                    });
                 }
+
+                startRunning();
+
+                loop = true;
+                run(function () {
+                    doneRunnig();
+                });
             }
 
-            oldData = data;
+            var pause = function () {
+                loop = false;
+            }
+
+            $('#next').click(next);
+            $('#go').click(go);
+            $('#pause').click(pause);
+
+            $('#stop').click(function () {
+                setTimeout(function () {
+                    window.close();
+                }, 250);
+                $.post('/stop');
+            });
+
+            function keyUp(e) {
+                e.preventDefault();
+                if (e.ctrlKey && e.keyCode === 88) {
+                    next();
+                }
+
+                if (e.ctrlKey && e.keyCode === 89) {
+                    go();
+                }
+            }
+            document.addEventListener('keyup', keyUp, false);
         }
 
-        var running = false;
-        var next = function () {
-            $.post('/next', updateUI);
-        }
-
-        var go = function () {
-            $.post('/run/500', updateUI);
-        }
-
-        $('#next').click(next);
-        $('#go').click(go);
-        $('#stop').click(function () {
-            setTimeout(function () {
-                window.close();
-            }, 250);
-            $.post('/stop');
-        });
 
         $.post('/state', buildUI);
-
-        function keyUp(e) {
-            e.preventDefault();
-            if (e.ctrlKey && e.keyCode === 88) {
-                next();
-            }
-
-            if (e.ctrlKey && e.keyCode === 89) {
-                go();
-            }
-        }
-        document.addEventListener('keyup', keyUp, false);
     </script>
 </body>
 </html>
