@@ -137,8 +137,8 @@ let runVM (instrs : List<Positioned<uint32>>) : unit =
             state.writeReg RA state.pc
             state.pc <- state.pc + (uintImm imm)
         | Callr rA -> 
-            state.writeReg RA state.pc
             state.pc <- state.readReg rA
+            state.writeReg RA state.pc
         | ImmWord _ -> failwith "Not recognized instruction. Might have hit data region"
         | _ -> failwith "instr not implemented %A" instr
     
@@ -169,10 +169,10 @@ let runVM (instrs : List<Positioned<uint32>>) : unit =
             let runs = UInt32.Parse num
             let mutable i = 1u
             runInstr() // Avoid getting stuck on breakpoint
-            while i < runs && not (state.isBreakpoint ()) do
+            while i < runs && not (state.isBreakpoint()) do
                 runInstr()
                 i <- i + 1u
-            watch.Stop ()
+            watch.Stop()
             printfn "Actually run: %d in %dms" i watch.ElapsedMilliseconds
             ("text/json", state.jsonify)
         | "br" :: num :: [] -> 
