@@ -179,7 +179,8 @@ let runVM (instrs : List<Positioned<uint32>>) : unit =
             let point = UInt32.Parse num
             state.toggleBreakpoint point
             ("text/json", state.jsonify)
-        | "state" :: [] -> ("text/json", state.jsonify)
+        | "state" :: [] -> 
+            ("text/json", state.jsonify)
         | "stop" :: [] -> 
             running := false
             ("text/html", "Stopped.")

@@ -129,6 +129,21 @@
                             }
                         }
                     } else if (type === 'VGA') {
+                        var textData = data.mem[memory].value.data;
+
+                        var changed = false;
+                        var row;
+                        for (row = 0; row < textData.length && !changed; row += 1) {
+                            if (oldData.mem[memory].value.data[row] !== textData[row]) {
+                                changed = true;
+                            }
+                        }
+
+                        var text = '';
+                        for (row = 0; row < textData.length; row += 1) {
+                            text += (textData[row] + '\n');
+                        }
+                        $('#' + memory + '-text').val(text);
                     } else {
                         alert('Unsupported memory type !!! ' + type);
                     }
@@ -199,7 +214,14 @@
 
                         memContentsHtml += '</tbody></table>';
                     } else if (type === 'VGA') {
+                        memContentsHtml += '<textarea id="' + memory + '-text" readonly cols="' + data.mem[memory].value.cols + '" rows="' + data.mem[memory].value.rows + '">';
 
+                        var textData = data.mem[memory].value.data;
+                        for (var row = 0; row < textData.length; row += 1) {
+                            memContentsHtml += (textData[row] + '\&#13;&#10;');
+                        }
+
+                        memContentsHtml += '</textarea>';
                     } else {
                         alert('Unsupported memory type !!! ' + type);
                     }

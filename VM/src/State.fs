@@ -29,16 +29,18 @@ type State(instr : Positioned<uint32> []) =
     let breakpoints = new System.Collections.Generic.HashSet<uint32>()
     
     let rom = 
-        Memory.rom "ROM-0" 4096u (fun addr -> 
+        Memory.rom "ROM-0" 0x1000u (fun addr -> 
             if addr < uint32 instr.Length then Ok(instr.[int addr] |> Position.remove)
             else Fail [ sprintf "No instruction here %d" addr ])
     
-    let ram = Memory.ram "RAM-0" 4096u
+    let ram = Memory.ram "RAM-0" 0x1000u
+    let vga = Memory.textVga "VGA-0" 30u 80u 8u
     
     let memory = 
         Bus.none
         |> Bus.add rom 0u
-        |> Attempt.bind (Bus.add ram 4096u)
+        |> Attempt.bind (Bus.add ram 0x1000u)
+        |> Attempt.bind (Bus.add vga 0x100000u)
         |> Attempt.get id
     
     member val pc = 0u with get, set
@@ -81,7 +83,7 @@ type State(instr : Positioned<uint32> []) =
     
     member this.addBreakpoint addr = breakpoints.Add addr |> ignore
     member this.removeBreakpoint addr = breakpoints.Remove addr |> ignore
-    member this.isBreakpoint () = breakpoints.Contains (this.pc)
+    member this.isBreakpoint() = breakpoints.Contains(this.pc)
     member this.jsonify = 
         let watch = new System.Diagnostics.Stopwatch()
         watch.Start()

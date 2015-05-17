@@ -83,12 +83,65 @@ module Memory =
           jsonify = jsonify }
     
     [<CompiledName("TextVGA")>]
-    let textVga (name : string) (height : uint32) (width : uint32) (colorWidth : uint32) (numColors : uint32) : Memory = 
-        let read addr = Fail [ "Not implemented" ]
-        let write addr value = Fail [ "Not implemented" ]
-        let jsonify (sb : StringBuilder) = sb.Append("{\"type\":\"VGA\"}") |> ignore
+    let textVga (name : string) (numRow : uint32) (numCol : uint32) (numColors : uint32) : Memory = 
+        let vramWidth = uint32 (System.Math.Ceiling(System.Math.Log(float (numRow * numCol), 2.0)))
+        let colorWidth = uint32 (System.Math.Ceiling(System.Math.Log(float numColors, 2.0)))
+        let color_n_vram_bit = System.Math.Max(vramWidth, colorWidth)
+        let colorMask = 1u <<< int color_n_vram_bit
+
+        let colorData = Array.init (int numColors) (fun _ -> 0xFFFu)
+        let colorDataString = Array.init (int numColors) (fun _ -> "FFF")
+        let charData = Array.init (int (numRow * numCol)) (fun _ -> ' ')
+
+        let read addr =
+            if (addr &&& colorMask) = colorMask then
+                let relAddr = int (addr - colorMask)
+                if relAddr < colorData.Length then
+                    Ok colorData.[relAddr]
+                else 
+                    Fail ["Read not inside VGA color zone"]
+            else
+                if addr < uint32 charData.Length then
+                    Ok (uint32 charData.[int addr])
+                else
+                    Fail [ "Read not inside VGA sprite range" ]
+
+
+        let write addr value = 
+            if (addr &&& colorMask) = colorMask then
+                let relAddr = int (addr - colorMask)
+                if relAddr < colorData.Length then
+                    colorData.[relAddr] <- value &&& 0xFFFu
+                    colorDataString.[relAddr] <- sprintf "%X" colorData.[relAddr]
+                    Ok ()
+                else 
+                    Fail ["Write not inside VGA color zone"]
+            else
+                if addr < uint32 charData.Length then
+                    if value < 128u then
+                        charData.[int addr] <- char value
+                        Ok ()
+                    else
+                        Fail ["Write, VGA only supports chars < 128"]
+                else
+                    Fail [ "Write not inside VGA sprite range" ]
+
+        let jsonify (sb : StringBuilder) = 
+            sb.Append("{\"type\":\"VGA\",\"rows\":").Append(numRow).Append(",\"cols\":").Append(numCol).Append(",\"data\":[") |> ignore
+            for row = 0 to (int numRow) - 1 do
+                if row <> 0 then sb.Append "," |> ignore
+                sb.Append "\"" |> ignore
+                for col = 0 to (int numCol) - 1 do
+                    sb.Append(charData.[row * (int numCol) + col]) |> ignore
+                sb.Append "\"" |> ignore
+            sb.Append("], \"colors\": [") |> ignore
+            for i = 0 to colorData.Length - 1 do
+                if i <> 0 then sb.Append "," |> ignore
+                sb.Append("\"").Append(colorDataString.[i]).Append("\"") |> ignore
+            sb.Append("]}") |> ignore
+
         { read = read
           write = write
-          size = height * width
+          size = 1u <<< (int color_n_vram_bit + 1)
           name = name
           jsonify = jsonify }
