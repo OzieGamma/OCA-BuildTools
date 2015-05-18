@@ -68,14 +68,14 @@ type State(instr : Positioned<uint32> []) =
         | Ok i -> i
         | Fail msg -> 
             msg |> List.iter (fun m -> printfn "%s" m)
-            failwith "Memory failure"
+            failwith (sprintf "Memory failure at pc 0x%X" this.pc)
     
     member this.writeMemory addr v = 
         match memory.write addr v with
         | Ok() -> ()
         | Fail msg -> 
             msg |> List.iter (fun m -> printfn "%s" m)
-            failwith "Memory failure"
+            failwith (sprintf "Memory failure at pc 0x%X" this.pc)
     
     member this.toggleBreakpoint addr = 
         if not (breakpoints.Contains addr) then this.addBreakpoint addr

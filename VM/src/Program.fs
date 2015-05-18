@@ -136,9 +136,10 @@ let runVM (instrs : List<Positioned<uint32>>) : unit =
         | Calli imm -> 
             state.writeReg RA state.pc
             state.pc <- state.pc + (uintImm imm)
-        | Callr rA -> 
+        | Callr rA ->
+            let oldPc = state.pc
             state.pc <- state.readReg rA
-            state.writeReg RA state.pc
+            state.writeReg RA oldPc
         | ImmWord _ -> failwith "Not recognized instruction. Might have hit data region"
         | _ -> failwith "instr not implemented %A" instr
     
@@ -195,7 +196,7 @@ let runVM (instrs : List<Positioned<uint32>>) : unit =
             resp.OutputStream.Close()
         })
     while !running do
-        ()
+        System.Threading.Thread.Sleep(200)
 
 let launchIE url = 
     let proc = new System.Diagnostics.Process()

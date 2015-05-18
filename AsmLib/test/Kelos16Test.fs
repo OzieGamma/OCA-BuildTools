@@ -30,8 +30,6 @@ let ``Kelos16.polyfill should handle not supported instructions``() =
     [ Not(SP, EA), Nor(SP, EA, EA) :: []
       Br(Imm.Value 42I), Beq(Zero, Zero, Imm.Value 42I) :: []
       Ret, Callr RA :: []
-      Text "ABCDEFGH", ImmWord(Value(bigint 0x41424344u)) :: ImmWord(Value(bigint 0x45464748u)) :: ImmWord(Value 0I) :: []
-      Text "ABCDEF", ImmWord(Value(bigint 0x41424344u)) :: ImmWord(Value(bigint 0x45460000u)) :: []
       Set(SP, Value 42I), Addi(SP, Zero, Value 42I) :: [] ]
     |> testOnDataMapAttempt Kelos16.polyfill
 

@@ -22,8 +22,9 @@ open OCA.AsmLib
 open OFuncLib
 
 let data = 
-    [ [ 2u; 65u; 0u ], "A"
-      [ 1u; 0u ], "" ]
+    [ [ 1u; 65u ], "A"
+      [ 2u; 0x44434241u; 0x4645u ], "ABCDEF"
+      [ 0u ], "" ]
 
 let byteData = data |> List.map (fun (x, _) -> x)
 
@@ -32,8 +33,7 @@ let ``OString.fromWords should work on valid input``() = data |> testOnDataMapAt
 
 [<Test>]
 let ``OString.fromWords rejects invalid input``() = 
-    [ [ 0u ]
-      [ 1u; 42u; 0u ] ]
+    [ [ 1u; 42u; 0u ] ]
     |> testOnDataShouldFail OString.fromWords
 
 [<Test>]

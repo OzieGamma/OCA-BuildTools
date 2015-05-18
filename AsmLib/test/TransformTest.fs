@@ -134,15 +134,19 @@ let binData =
     
     let bin5 = 
         [ Text "ABCDEFGH" ], 
-        [ ImmWord(Value(bigint 0x41424344u))
-          ImmWord(Value(bigint 0x45464748u))
-          Ldw(Zero, Zero, Value 0I) ]
+        [ Ldw(Zero, Zero, Value(2I))
+          ImmWord(Value(bigint 0x44434241u))
+          ImmWord(Value(bigint 0x48474645u)) ]
     
-    let bin6 = [ Text "AB" ], [ ImmWord(Value(bigint 0x41420000u)) ]
+    let bin6 = 
+        [ Text "AB" ], 
+        [ Ldw(Zero, Zero, Value(1I))
+          Ldw(Zero, Zero, Value(bigint 0x00004241u)) ]
     
     let bin7 = 
         [ Define("LED_BASE", 4096I)
           Set(TReg(0us), LabelRef("LED_BASE", 1I)) ], [ Addi(TReg(0us), Zero, Value(4097I)) ]
+    
     [ bin1; bin2; bin3; bin4; bin5; bin6; bin7 ]
 
 [<Test>]

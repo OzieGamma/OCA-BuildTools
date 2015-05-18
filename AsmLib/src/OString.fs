@@ -25,11 +25,25 @@ open OFuncLib
 /// Decodes an OCA string in byte representation into a .NET string
 /// </sumary>
 [<CompiledName("FromWords")>]
-let fromWords (words : List<uint32>) : Attempt<string> =
-    if uint32 words.Length - 1u <> words.Head then
-        Fail [sprintf "Invalid OCA string %A" words]
-    else
-        Ok ""
+let fromWords (words : List<uint32>) : Attempt<string> = 
+    if uint32 words.Length - 1u <> words.Head then Fail [ sprintf "Invalid OCA string %A" words ]
+    else 
+        words.Tail
+        |> List.fold 
+               (fun acc entry -> 
+               if entry &&& 0xFFu = 0u then Fail [ sprintf "Invalid OCA string %A" words ] :: acc
+               elif entry &&& 0xFF00u = 0u then (Ok(byte (entry &&& 0xFFu))) :: acc
+               elif entry &&& 0xFF0000u = 0u then (Ok(byte ((entry &&& 0xFF00u) >>> 8))) :: (Ok(byte (entry &&& 0xFFu))) :: acc
+               elif entry &&& 0xFF000000u = 0u then 
+                   (Ok(byte ((entry &&& 0xFF0000u) >>> 16))) :: (Ok(byte ((entry &&& 0xFF00u) >>> 8))) :: (Ok(byte (entry &&& 0xFFu))) :: acc
+               else 
+                   (Ok(byte ((entry &&& 0xFF000000u) >>> 24))) 
+                   :: (Ok(byte ((entry &&& 0xFF0000u) >>> 16))) :: (Ok(byte ((entry &&& 0xFF00u) >>> 8))) :: (Ok(byte (entry &&& 0xFFu))) :: acc) []
+        |> Attempt.liftList
+        |> Attempt.map List.rev
+        |> Attempt.map Array.ofList
+        |> Attempt.map System.Text.Encoding.ASCII.GetChars
+        |> Attempt.map (fun chars -> new string(chars))
 
 /// <sumary>
 /// Transforms a string into it's OCA byte representation
@@ -43,11 +57,11 @@ let toWords (s : string) : Attempt<List<uint32>> =
         |> List.ofSeq
         |> List.fold (fun (acc, count) c -> 
                match acc, count with
-               | (_ :: tail), 0 -> ((uint32 c <<< 24) :: tail, 1)
-               | (head :: tail), 1 -> ((head ||| (uint32 c <<< 16)) :: tail, 2)
-               | (head :: tail), 2 -> ((head ||| (uint32 c <<< 8)) :: tail, 3)
-               | (head :: tail), 3 -> (0u :: (head ||| uint32 c) :: tail, 0)
-               | _ -> failwith "Invalid state Instr.expandMacros") (0u :: [], 0)
+               | list, 0 -> (uint32 c :: list, 1)
+               | (head :: tail), 1 -> ((head ||| (uint32 c <<< 8)) :: tail, 2)
+               | (head :: tail), 2 -> ((head ||| (uint32 c <<< 16)) :: tail, 3)
+               | (head :: tail), 3 -> ((head ||| (uint32 c <<< 24)) :: tail, 0)
+               | _ -> failwith "Invalid state Instr.expandMacros") ([], 0)
         |> (fun (list, _) -> list)
         |> List.rev
     (uint32 words.Length) :: words |> Ok
