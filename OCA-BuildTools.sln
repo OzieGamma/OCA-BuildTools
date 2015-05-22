@@ -19,6 +19,10 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "OCA-VM", "VM\src\OCA-VM.fsp
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "OCA-VM.Test", "VM\test\OCA-VM.Test.fsproj", "{0CCF917F-3BAB-412D-8C26-B16D8AEBE3CE}"
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "OCA-WaldoCompiler", "WaldoCompiler\src\OCA-WaldoCompiler.fsproj", "{4ADE9566-E545-4228-9D83-47A2DF3AB9DD}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "OCA-WaldoCompiler.Test", "WaldoCompiler\test\OCA-WaldoCompiler.Test.fsproj", "{BF6CC3D1-DD70-48D8-9A73-0E09AFEBD868}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -57,6 +61,14 @@ Global
 		{0CCF917F-3BAB-412D-8C26-B16D8AEBE3CE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0CCF917F-3BAB-412D-8C26-B16D8AEBE3CE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0CCF917F-3BAB-412D-8C26-B16D8AEBE3CE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4ADE9566-E545-4228-9D83-47A2DF3AB9DD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4ADE9566-E545-4228-9D83-47A2DF3AB9DD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4ADE9566-E545-4228-9D83-47A2DF3AB9DD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4ADE9566-E545-4228-9D83-47A2DF3AB9DD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BF6CC3D1-DD70-48D8-9A73-0E09AFEBD868}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BF6CC3D1-DD70-48D8-9A73-0E09AFEBD868}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BF6CC3D1-DD70-48D8-9A73-0E09AFEBD868}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BF6CC3D1-DD70-48D8-9A73-0E09AFEBD868}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
