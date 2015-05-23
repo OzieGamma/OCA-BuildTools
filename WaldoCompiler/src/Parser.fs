@@ -17,10 +17,9 @@
 // --------------------------------------------------------------------------------------------------------------------
 module OCA.WaldoCompiler.Parser
 
-open OFuncLib
-
 open OCA.AsmLib
 open OCA.WaldoCompiler
+open OFuncLib
 
 let (|T|_|) target v = 
     match v with
@@ -66,29 +65,29 @@ and Statement =
     | VarDeclaration of pos : Position * vars : List<Positioned<string> * Positioned<WaldoType>> * value : Expr
     | ValDeclaration of pos : Position * vals : List<Positioned<string> * Positioned<WaldoType>> * value : Expr
     | Assignment of pos : Position * names : List<string> * value : Expr
-    | MethodCallStatement of name : Positioned<string> * args : List<Expr>
+    | MethodCallStatement of name : Positioned<string> * this : Option<Expr> * args : Expr
     | If of expr : Expr * body : StatementBlock
     | IfElse of expr : Expr * thn : StatementBlock * els : StatementBlock
     | WhileLoop of expr : Expr * body : StatementBlock
-    | ForLoop of varName : Positioned<string> * start : Expr * endCond : Expr
+    | ForLoop of varName : Positioned<string> * startExpr : Expr * endExpr : Expr * body : StatementBlock
     | Return of Expr
     member this.position = 
         match this with
         | VarDeclaration(p, _, _) -> p
         | ValDeclaration(p, _, _) -> p
         | Assignment(p, _, _) -> p
-        | MethodCallStatement(Positioned(_, p), _) -> p
+        | MethodCallStatement(Positioned(_, p), _, _) -> p
         | If(expr, _) -> expr.position
         | IfElse(expr, _, _) -> expr.position
         | WhileLoop(expr, _) -> expr.position
-        | ForLoop(Positioned(_, p), _, _) -> p
+        | ForLoop(Positioned(_, p), _, _, _) -> p
         | Return expr -> expr.position
 
 and Expr = 
     | Variable of name : Positioned<string>
     | OperatorCall of left : Expr * op : Positioned<string> * right : Expr
     | UnaryOperatorCall of op : Positioned<string> * expr : Expr
-    | MethodCall of name : Positioned<string> * args : List<Expr>
+    | MethodCall of name : Positioned<string> * this : Option<Expr> * args : Expr
     | TupleExpr of pos : Position * List<Expr>
     | ConstExpr of ConstExpr
     member this.position = 
@@ -96,7 +95,7 @@ and Expr =
         | Variable(Positioned(_, p)) -> p
         | OperatorCall(left, _, _) -> left.position
         | UnaryOperatorCall(Positioned(_, p), _) -> p
-        | MethodCall(Positioned(_, p), _) -> p
+        | MethodCall(Positioned(_, p), _, _) -> p
         | TupleExpr(p, _) -> p
         | ConstExpr expr -> expr.position
 
@@ -185,7 +184,7 @@ let parseFile (fileName : string) (source : List<Positioned<Token>>) : GenericAt
             | [] -> failUnexpectedEOF "type", []
         match source with
         | T Colon :: tail -> inner tail
-        | Positioned(_, pos) :: tail -> Ok (Positioned(Unknown, pos)), source
+        | Positioned(_, pos) :: tail -> Ok(Positioned(Unknown, pos)), source
         | [] -> failUnexpectedEOF "type", []
     
     let parseArgumentList source = 
@@ -211,13 +210,13 @@ let parseFile (fileName : string) (source : List<Positioned<Token>>) : GenericAt
             | [] -> failUnexpectedEOF "argument list end ')'", []
         | head :: tail -> head |> failUnexpected "argument list", tail
         | [] -> failUnexpectedEOF "argument list", []
-
-    let parseVarValDeclList source =
+    
+    let parseVarValDeclList source = 
         match source with
-        | Positioned(Id name, pos) :: tail ->
+        | Positioned(Id name, pos) :: tail -> 
             let tpe, tail = parseType tail
             (tpe |> Attempt.map (fun tpe -> (Positioned(name, pos), tpe) :: [])), tail
-        | other -> parseArgumentList other 
+        | other -> parseArgumentList other
     
     let parseConstExpr source = 
         match source with
@@ -260,40 +259,117 @@ let parseFile (fileName : string) (source : List<Positioned<Token>>) : GenericAt
         | head :: _ -> head |> failUnexpected "asm function name"
         | [] -> failUnexpectedEOF "asm function name"
     
-    let parseExpr source =
-        match source with
-        | other -> 
-            let constExpr, tail = parseConstExpr other
-            (constExpr |> Attempt.map ConstExpr), tail
+    let rec parseExpr source = 
+        let rec parseTupleExprEnd pos acc source = 
+            let entry, tail = parseExpr source
+            match tail with
+            | T Comma :: tail -> parseTupleExprEnd pos (entry :: acc) tail
+            | T RightParen :: tail -> 
+                let expr = 
+                    (entry :: acc)
+                    |> List.rev
+                    |> Attempt.liftList
+                    |> Attempt.map (fun exprs -> TupleExpr(pos, exprs))
+                expr, tail
+            | head :: _ -> head |> failUnexpected ") or , in tuple expr", tail
+            | [] -> failUnexpectedEOF ") or , in tuple expr", tail
+        
+        let rec parseSimpleExpr source = 
+            match source with
+            | Positioned(LeftParen, pos) :: T RightParen :: tail -> Ok(TupleExpr(pos, [])), tail
+            | Positioned(LeftParen, pos) :: tail -> 
+                let left, tail = parseExpr tail
+                match tail with
+                | T Comma :: tail -> parseTupleExprEnd pos [ left ] tail
+                | T RightParen :: tail -> left, tail
+                | head :: _ -> head |> failUnexpected ") in expr", tail
+                | [] -> failUnexpectedEOF ") in expr", tail
+            | Positioned(Id funcName, pos) :: T LeftParen :: tail -> 
+                let args, tail = parseExpr source.Tail
+                let expr = args |> Attempt.map (fun args -> MethodCall(Positioned(funcName, pos), None, args))
+                expr, tail
+            | Positioned(Id _, _) :: T Colon :: _ -> 
+                let name, tail = parseNamespaceName "" source
+                let args, tail = parseExpr tail
+                let expr = (name, args) |> Attempt.lift2curriedMap (fun name args -> MethodCall(name, None, args))
+                expr, tail
+            | Positioned(Operator op, pos) :: tail -> 
+                let expr, tail = parseExpr tail
+                let expr = expr |> Attempt.map (fun expr -> UnaryOperatorCall(Positioned(op, pos), expr))
+                expr, tail
+            | Positioned(Id varName, pos) :: tail -> Ok(Variable(Positioned(varName, pos))), tail
+            | other -> 
+                let constExpr, tail = parseConstExpr other
+                (constExpr |> Attempt.map ConstExpr), tail
+        
+        let left, tail = parseSimpleExpr source
+        match tail with
+        | Positioned(Operator op, pos) :: tail -> 
+            let right, tail = parseSimpleExpr tail
+            (left, right) |> Attempt.lift2curriedMap (fun left right -> OperatorCall(left, Positioned(op, pos), right)), tail
+        | Positioned(Dot, pos) :: tail -> 
+            let name, tail = parseNamespaceName "" tail
+            let args, tail = parseExpr tail
+            let expr = (left, name, args) |> Attempt.lift3curriedMap (fun this name args -> MethodCall(name, Some(this), args))
+            expr, tail
+        | _ -> left, tail
     
-    let parseStatementBlock source = 
-        let rec parseStatementBlockBody source =
-            let parseVarOrVal node pos tail =
+    let rec parseStatementBlock source = 
+        let rec parseStatementBlockBody source = 
+            let parseVarOrVal node pos tail = 
                 let vals, tail = parseVarValDeclList tail
                 match tail with
                 | T Equals :: tail -> 
                     let expr, tail = parseExpr tail
-                    
-                    let statement =
-                        (vals, expr)
-                        |> Attempt.lift2
-                        |> Attempt.map (fun (vals, expr) -> node(pos, vals, expr))
+                    let statement = (vals, expr) |> Attempt.lift2curriedMap (fun vals expr -> node (pos, vals, expr))
                     statement :: parseStatementBlockBody tail
                 | head :: tail -> failUnexpected "Equals in val or var statement" head :: parseStatementBlockBody tail
                 | [] -> failUnexpectedEOF "Equals in val or var statement" :: []
+            
+            let parseForLoop tail = 
+                match tail with
+                | Positioned(Id name, pos) :: T Equals :: tail -> 
+                    let startExpr, tail = parseExpr tail
+                    match tail with
+                    | T Upto :: tail -> 
+                        let endExpr, tail = parseExpr tail
+                        let body, tail = parseStatementBlock tail
+                        let statement = 
+                            (startExpr, endExpr, body) 
+                            |> Attempt.lift3curriedMap (fun startExpr endExpr body -> ForLoop(Positioned(name, pos), startExpr, endExpr, body))
+                        statement :: parseStatementBlockBody tail
+                    | head :: tail -> failUnexpected "Upto in for-loop statement" head :: parseStatementBlockBody tail
+                    | [] -> failUnexpectedEOF "Upto in for-loop statement" :: []
+                | head :: tail -> failUnexpected "Name and equals in for-loop statement" head :: parseStatementBlockBody tail
+                | [] -> failUnexpectedEOF "Name and equals in for-loop statement" :: []
+            
+            let parseWhileLoop tail = 
+                let expr, tail = parseExpr tail
+                let body, tail = parseStatementBlock tail
+                let statement = (expr, body) |> Attempt.lift2curriedMap (fun expr body -> WhileLoop(expr, body))
+                statement :: parseStatementBlockBody tail
+            
+            let parseMethodCallStatment source = 
+                let expr, tail = parseExpr source
+                match expr with
+                | Ok(MethodCall(name, this, args)) -> Ok(MethodCallStatement(name, this, args)) :: parseStatementBlockBody tail
+                | Ok expr -> Fail [ Positioned("Only method calls can be used as statements and expressions", expr.position) ] :: parseStatementBlockBody tail
+                | Fail msg -> Fail msg :: parseStatementBlockBody tail
+            
             match source with
             | Positioned(Val, pos) :: tail -> parseVarOrVal ValDeclaration pos tail
             | Positioned(Var, pos) :: tail -> parseVarOrVal VarDeclaration pos tail
-            | head :: tail -> failUnexpected "statement begin" head :: parseStatementBlockBody tail
+            | T For :: tail -> parseForLoop tail
+            | T While :: tail -> parseWhileLoop tail
+            | head :: tail -> parseMethodCallStatment source
             | [] -> []
         
         let body, tail = blockInsides source
-        body
-        |> Attempt.bind (fun body -> parseStatementBlockBody body |> Attempt.liftList)
-        |> Attempt.map List.rev, tail
+        body |> Attempt.bind (fun body -> parseStatementBlockBody body |> Attempt.liftList), tail
     
+    //|> Attempt.map List.rev, tail
     let parseDefFunc source = 
-        let parseGeneric node name pos tail =
+        let parseGeneric node name pos tail = 
             let args, argsTail = parseArgumentList tail
             let retType, retTail = parseType argsTail
             let body = parseStatementBlock retTail |> failIfTailNotEmpry "def function end"
