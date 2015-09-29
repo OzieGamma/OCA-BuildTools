@@ -42,8 +42,9 @@
     <Reference Include="System.Numerics" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ParserTest.fs" />
+    <Compile Include="FunctionalTests.fs" />
     <Compile Include="ParserRejectTest.fs" />
+    <Compile Include="ParserTest.fs" />
   </ItemGroup>
   <PropertyGroup>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>

@@ -1,5 +1,5 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="ParserTest.fs" company="Oswald Maskens">
+// <copyright file="FunctionalTests.fs" company="Oswald Maskens">
 //   Copyright 2014 Oswald Maskens
 //   
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,24 +15,24 @@
 //   limitations under the License.
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
-module OCA.WaldoCompiler.Test.ParserTest
+module OCA.WaldoCompiler.Test.FunctionalTests
 
+open OFuncLib
 open NUnit.Framework
+
 open OCA.AsmLib
 open OCA.WaldoCompiler
-open OCA.WaldoCompiler.Parser
-open OFuncLib
 
 let pos = Position.addZero
 let p = Position.zero
 
-let parse source = 
+let compile source = 
     source
-    |> Lexer.tokenizeFile "f"
+    |> Program.compile "file"
     |> Attempt.map (List.map Position.remove)
-    |> Attempt.map (List.map Position.addZero)
-    |> Attempt.bind (Parser.parseFile "f")
 
 [<Test>]
-let ``Parser should be able to parse nothing``() = 
-    [ "", [  ] ] |> testOnDataMapAttempt parse
+let ``Should compile a simple program``() =
+    let input = "void __main() { int a = 3 int b = 5 int c = a + b }"
+    let output = [Addi(TReg(0us), Zero, Value(3I)); Addi(TReg(1us), Zero, Value(5I)); Add(TReg(2us), TReg(0us), TReg(1us))]
+    [input, output] |> testOnDataMapAttempt compile

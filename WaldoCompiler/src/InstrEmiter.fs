@@ -1,5 +1,5 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="ParserTest.fs" company="Oswald Maskens">
+// <copyright file="InstrEmiter.fs" company="Oswald Maskens">
 //   Copyright 2014 Oswald Maskens
 //   
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,24 +15,11 @@
 //   limitations under the License.
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
-module OCA.WaldoCompiler.Test.ParserTest
+module OCA.WaldoCompiler.InstrEmiter
 
-open NUnit.Framework
 open OCA.AsmLib
 open OCA.WaldoCompiler
-open OCA.WaldoCompiler.Parser
 open OFuncLib
 
-let pos = Position.addZero
-let p = Position.zero
-
-let parse source = 
-    source
-    |> Lexer.tokenizeFile "f"
-    |> Attempt.map (List.map Position.remove)
-    |> Attempt.map (List.map Position.addZero)
-    |> Attempt.bind (Parser.parseFile "f")
-
-[<Test>]
-let ``Parser should be able to parse nothing``() = 
-    [ "", [  ] ] |> testOnDataMapAttempt parse
+let emit source =
+    Fail []

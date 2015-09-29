@@ -26,34 +26,17 @@ let (|T|_|) target v =
     | Positioned(value, _) when value = target -> Some()
     | _ -> None
 
-type Tree = List<NamespaceDecl>
+type Tree = List<Declaration>
 
-and NamespaceDecl = 
-    | NamespaceDecl of _name : Positioned<string> * _elements : List<NamespaceElement>
-    
-    member this.position = 
-        match this with
-        | NamespaceDecl(Positioned(_, pos), _) -> pos
-    
-    member this.name = 
-        match this with
-        | NamespaceDecl(name, _) -> name
-    
-    member this.elements = 
-        match this with
-        | NamespaceDecl(_, elements) -> elements
-
-and NamespaceElement = 
-    | UsingStatement of name : Positioned<string>
-    | ConstStatement of name : Positioned<string> * expr : ConstExpr
+and Declaration = 
+    | Global of name : Positioned<string> * expr : Expr
     | AsmFunction of name : Positioned<string> * arguments : List<Positioned<string> * Positioned<WaldoType>> * returnType : Positioned<WaldoType> * body : List<Positioned<Instr>>
     | AsmOperator of name : Positioned<string> * arguments : List<Positioned<string> * Positioned<WaldoType>> * returnType : Positioned<WaldoType> * body : List<Positioned<Instr>>
     | DefFunction of name : Positioned<string> * arguments : List<Positioned<string> * Positioned<WaldoType>> * returnType : Positioned<WaldoType> * body : StatementBlock
     | DefOperator of name : Positioned<string> * arguments : List<Positioned<string> * Positioned<WaldoType>> * returnType : Positioned<WaldoType> * body : StatementBlock
     member this.position = 
         match this with
-        | UsingStatement(Positioned(_, p)) -> p
-        | ConstStatement(Positioned(_, p), _) -> p
+        | Global(Positioned(_, p), _) -> p
         | AsmFunction(Positioned(_, p), _, _, _) -> p
         | AsmOperator(Positioned(_, p), _, _, _) -> p
         | DefFunction(Positioned(_, p), _, _, _) -> p
@@ -62,41 +45,19 @@ and NamespaceElement =
 and StatementBlock = List<Statement>
 
 and Statement = 
-    | VarDeclaration of pos : Position * vars : List<Positioned<string> * Positioned<WaldoType>> * value : Expr
-    | ValDeclaration of pos : Position * vals : List<Positioned<string> * Positioned<WaldoType>> * value : Expr
-    | Assignment of pos : Position * names : List<string> * value : Expr
-    | MethodCallStatement of name : Positioned<string> * this : Option<Expr> * args : Expr
-    | If of expr : Expr * body : StatementBlock
-    | IfElse of expr : Expr * thn : StatementBlock * els : StatementBlock
-    | WhileLoop of expr : Expr * body : StatementBlock
-    | ForLoop of varName : Positioned<string> * startExpr : Expr * endExpr : Expr * body : StatementBlock
-    | Return of Expr
+    | VarDeclaration of var : Positioned<string> * tpe : Positioned<WaldoType> * value : Expr
     member this.position = 
         match this with
-        | VarDeclaration(p, _, _) -> p
-        | ValDeclaration(p, _, _) -> p
-        | Assignment(p, _, _) -> p
-        | MethodCallStatement(Positioned(_, p), _, _) -> p
-        | If(expr, _) -> expr.position
-        | IfElse(expr, _, _) -> expr.position
-        | WhileLoop(expr, _) -> expr.position
-        | ForLoop(Positioned(_, p), _, _, _) -> p
-        | Return expr -> expr.position
+        | VarDeclaration(Positioned(p, _), _, _) -> p
 
 and Expr = 
     | Variable of name : Positioned<string>
     | OperatorCall of left : Expr * op : Positioned<string> * right : Expr
-    | UnaryOperatorCall of op : Positioned<string> * expr : Expr
-    | MethodCall of name : Positioned<string> * this : Option<Expr> * args : Expr
-    | TupleExpr of pos : Position * List<Expr>
     | ConstExpr of ConstExpr
     member this.position = 
         match this with
         | Variable(Positioned(_, p)) -> p
         | OperatorCall(left, _, _) -> left.position
-        | UnaryOperatorCall(Positioned(_, p), _) -> p
-        | MethodCall(Positioned(_, p), _, _) -> p
-        | TupleExpr(p, _) -> p
         | ConstExpr expr -> expr.position
 
 and ConstExpr = 
@@ -115,7 +76,8 @@ and ConstExpr =
 
 let parseFile (fileName : string) (source : List<Positioned<Token>>) : GenericAttempt<Tree, Positioned<string>> = 
     let fail msg pos = Fail [ Positioned(msg, pos) ]
-    let failUnexpected expected (head : Positioned<'T>) = fail (sprintf "Expected %s but got %A instead" expected head.value) head.position
+    let failUnexpected expected (head : Positioned<'T>) = 
+        fail (sprintf "Expected %s but got %A instead" expected head.value) head.position
     
     let failUnexpectedEOF phase = 
         let pos = Position(0u, 0u, fileName)
@@ -142,40 +104,28 @@ let parseFile (fileName : string) (source : List<Positioned<Token>>) : GenericAt
         | [] -> failUnexpectedEOF "block begin", []
     
     let rec parseType source : PositionedAttempt<WaldoType> * List<Positioned<Token>> = 
-        let rec inner source = 
-            let rec innerInner acc source = 
-                let tpe, tail = inner source
-                match tail with
-                | T Comma :: tail -> innerInner (tpe :: acc) tail
-                | _ -> (tpe :: acc), tail
+        let rec parseSimpleType source = 
+            let parseTypeList source = 
+                let rec inner acc source = 
+                    let tpe, tail = parseSimpleType source
+                    match tail with
+                    | T Comma :: tail -> inner (tpe :: acc) tail
+                    | _ -> (tpe :: acc), tail
+                inner [] source
             match source with
-            | Positioned(Id "Unit", pos) :: tail -> Ok(Positioned(Tuple [], pos)), tail
-            | Positioned(LeftParen, pos) :: T RightParen :: tail -> Ok(Positioned(Tuple [], pos)), tail
+            | Positioned(Id "Void", pos) :: tail -> Ok(Positioned(Void, pos)), tail
             | Positioned(Id name, pos) :: tail -> Ok(Positioned(Identifier name, pos)), tail
-            | Positioned(LeftParen, pos) :: tail -> 
-                let tpes, tail = innerInner [] tail
-                match tail with
-                | T RightParen :: tail -> 
-                    tpes
-                    |> Attempt.liftList
-                    |> Attempt.map List.rev
-                    |> Attempt.map (List.map Position.remove)
-                    |> Attempt.bind (fun tpes -> 
-                           if tpes.Length = 1 then Ok tpes.Head
-                           else Ok(Tuple tpes))
-                    |> Attempt.map (Position.add pos), tail
-                | head :: tail -> head |> failUnexpected "type end ')'", tail
-                | [] -> failUnexpectedEOF "type end ')'", []
             | Positioned(LeftBracket, pos) :: tail -> 
-                let fromTpe, fromTail = inner tail
+                let fromTpe, fromTail = parseTypeList tail
                 match fromTail with
                 | T(Operator "=>") :: tail -> 
-                    let toTpe, toTail = inner tail
+                    let toTpe, toTail = parseSimpleType tail
                     match toTail with
                     | T RightBracket :: tail -> 
-                        (fromTpe, toTpe)
+                        (fromTpe |> Attempt.liftList, toTpe)
                         |> Attempt.lift2
-                        |> Attempt.map (fun (f, t) -> Positioned(FuncType(f.value, t.value), pos)), tail
+                        |> Attempt.map (fun (f, t) -> Positioned(FuncType(f |> List.map Position.remove, t.value), pos)), 
+                        tail
                     | head :: tail -> head |> failUnexpected "] in func type", tail
                     | [] -> failUnexpectedEOF "] in func type", []
                 | head :: tail -> head |> failUnexpected "=> in func type", tail
@@ -183,8 +133,8 @@ let parseFile (fileName : string) (source : List<Positioned<Token>>) : GenericAt
             | head :: tail -> head |> failUnexpected "type", tail
             | [] -> failUnexpectedEOF "type", []
         match source with
-        | T Colon :: tail -> inner tail
-        | Positioned(_, pos) :: tail -> Ok(Positioned(Unknown, pos)), source
+        | T Colon :: tail -> parseSimpleType tail
+        | Positioned(_, pos) :: tail -> Ok(Positioned(Void, pos)), source
         | [] -> failUnexpectedEOF "type", []
     
     let parseArgumentList source = 
@@ -235,12 +185,6 @@ let parseFile (fileName : string) (source : List<Positioned<Token>>) : GenericAt
         | head :: tail -> head |> failUnexpected "Id as namespace name", tail
         | [] -> failUnexpectedEOF "namespace name", []
     
-    let parseUsing (source : List<Positioned<Token>>) = 
-        let name, nameTail = parseNamespaceName "" source
-        match nameTail with
-        | head :: _ -> head |> failUnexpected "Using statement should only contain a namespace name"
-        | [] -> name |> Attempt.map UsingStatement
-    
     let parseAsmfunc source = 
         let parseGeneric node name pos tail = 
             let args, argsTail = parseArgumentList tail
@@ -260,43 +204,8 @@ let parseFile (fileName : string) (source : List<Positioned<Token>>) : GenericAt
         | [] -> failUnexpectedEOF "asm function name"
     
     let rec parseExpr source = 
-        let rec parseTupleExprEnd pos acc source = 
-            let entry, tail = parseExpr source
-            match tail with
-            | T Comma :: tail -> parseTupleExprEnd pos (entry :: acc) tail
-            | T RightParen :: tail -> 
-                let expr = 
-                    (entry :: acc)
-                    |> List.rev
-                    |> Attempt.liftList
-                    |> Attempt.map (fun exprs -> TupleExpr(pos, exprs))
-                expr, tail
-            | head :: _ -> head |> failUnexpected ") or , in tuple expr", tail
-            | [] -> failUnexpectedEOF ") or , in tuple expr", tail
-        
         let rec parseSimpleExpr source = 
             match source with
-            | Positioned(LeftParen, pos) :: T RightParen :: tail -> Ok(TupleExpr(pos, [])), tail
-            | Positioned(LeftParen, pos) :: tail -> 
-                let left, tail = parseExpr tail
-                match tail with
-                | T Comma :: tail -> parseTupleExprEnd pos [ left ] tail
-                | T RightParen :: tail -> left, tail
-                | head :: _ -> head |> failUnexpected ") in expr", tail
-                | [] -> failUnexpectedEOF ") in expr", tail
-            | Positioned(Id funcName, pos) :: T LeftParen :: tail -> 
-                let args, tail = parseExpr source.Tail
-                let expr = args |> Attempt.map (fun args -> MethodCall(Positioned(funcName, pos), None, args))
-                expr, tail
-            | Positioned(Id _, _) :: T Colon :: _ -> 
-                let name, tail = parseNamespaceName "" source
-                let args, tail = parseExpr tail
-                let expr = (name, args) |> Attempt.lift2curriedMap (fun name args -> MethodCall(name, None, args))
-                expr, tail
-            | Positioned(Operator op, pos) :: tail -> 
-                let expr, tail = parseExpr tail
-                let expr = expr |> Attempt.map (fun expr -> UnaryOperatorCall(Positioned(op, pos), expr))
-                expr, tail
             | Positioned(Id varName, pos) :: tail -> Ok(Variable(Positioned(varName, pos))), tail
             | other -> 
                 let constExpr, tail = parseConstExpr other
@@ -306,26 +215,13 @@ let parseFile (fileName : string) (source : List<Positioned<Token>>) : GenericAt
         match tail with
         | Positioned(Operator op, pos) :: tail -> 
             let right, tail = parseSimpleExpr tail
-            (left, right) |> Attempt.lift2curriedMap (fun left right -> OperatorCall(left, Positioned(op, pos), right)), tail
-        | Positioned(Dot, pos) :: tail -> 
-            let name, tail = parseNamespaceName "" tail
-            let args, tail = parseExpr tail
-            let expr = (left, name, args) |> Attempt.lift3curriedMap (fun this name args -> MethodCall(name, Some(this), args))
-            expr, tail
+            (left, right) |> Attempt.lift2curriedMap (fun left right -> OperatorCall(left, Positioned(op, pos), right)), 
+            tail
         | _ -> left, tail
     
     let rec parseStatementBlock source = 
         let rec parseStatementBlockBody source = 
-            let parseVarOrVal node pos tail = 
-                let vals, tail = parseVarValDeclList tail
-                match tail with
-                | T Equals :: tail -> 
-                    let expr, tail = parseExpr tail
-                    let statement = (vals, expr) |> Attempt.lift2curriedMap (fun vals expr -> node (pos, vals, expr))
-                    statement :: parseStatementBlockBody tail
-                | head :: tail -> failUnexpected "Equals in val or var statement" head :: parseStatementBlockBody tail
-                | [] -> failUnexpectedEOF "Equals in val or var statement" :: []
-            
+            (*
             let parseForLoop tail = 
                 match tail with
                 | Positioned(Id name, pos) :: T Equals :: tail -> 
@@ -355,13 +251,20 @@ let parseFile (fileName : string) (source : List<Positioned<Token>>) : GenericAt
                 | Ok(MethodCall(name, this, args)) -> Ok(MethodCallStatement(name, this, args)) :: parseStatementBlockBody tail
                 | Ok expr -> Fail [ Positioned("Only method calls can be used as statements and expressions", expr.position) ] :: parseStatementBlockBody tail
                 | Fail msg -> Fail msg :: parseStatementBlockBody tail
-            
+
+            *)
             match source with
-            | Positioned(Val, pos) :: tail -> parseVarOrVal ValDeclaration pos tail
-            | Positioned(Var, pos) :: tail -> parseVarOrVal VarDeclaration pos tail
-            | T For :: tail -> parseForLoop tail
-            | T While :: tail -> parseWhileLoop tail
-            | head :: tail -> parseMethodCallStatment source
+            | head :: tail -> 
+                let tpe, tail = parseType source
+                match tail with
+                | Positioned(Id name, pos) :: T Equals :: tail -> 
+                    let expr, tail = parseExpr tail
+                    let statement = 
+                        (tpe, expr) 
+                        |> Attempt.lift2curriedMap (fun tpe expr -> VarDeclaration(Positioned(name, pos), tpe, expr))
+                    statement :: parseStatementBlockBody tail
+                | head :: tail -> failUnexpected "Name after type in var decl" head :: parseStatementBlockBody tail
+                | [] -> failUnexpectedEOF "Name after type in var decl" :: []
             | [] -> []
         
         let body, tail = blockInsides source
@@ -388,40 +291,18 @@ let parseFile (fileName : string) (source : List<Positioned<Token>>) : GenericAt
             tail
             |> parseConstExpr
             |> failIfTailNotEmpry "End of const expression"
-            |> Attempt.map (fun body -> ConstStatement(Positioned(name, pos), body))
+            |> Attempt.map (fun body -> Global(Positioned(name, pos), ConstExpr(body)))
         | head :: _ -> head |> failUnexpected "constant identifier"
         | [] -> failUnexpectedEOF "constant identifier"
     
-    let parseNamespaceElement source : GenericAttempt<NamespaceElement, Positioned<string>> = 
+    let parseDeclaration source : GenericAttempt<Declaration, Positioned<string>> = 
         match source with
-        | T Using :: tail -> parseUsing tail
         | T Asm :: tail -> parseAsmfunc tail
         | T Def :: tail -> parseDefFunc tail
         | T Const :: tail -> parseConst tail
         | head :: _ -> head |> failUnexpected "\"using\" or \"asm\" or \"def\" or \"const\""
-        | [] -> failUnexpectedEOF "namespace member"
+        | [] -> failUnexpectedEOF "declaration"
     
-    let parseNamespace source : GenericAttempt<NamespaceDecl, Positioned<string>> = 
-        let parseNamespaceBody source = 
-            source
-            |> blockInsides
-            |> failIfTailNotEmpry "namespace block end"
-            |> Attempt.map (SeqExt.split (fun x -> x.value = Asm || x.value = Def || x.value = Const))
-            |> Attempt.bind (fun l -> 
-                   l
-                   |> List.map parseNamespaceElement
-                   |> Attempt.liftList)
-        match source with
-        | Positioned(Namespace, _) :: tail -> 
-            let name, nameTail = parseNamespaceName "" tail
-            let elements = parseNamespaceBody nameTail
-            (name, elements)
-            |> Attempt.lift2
-            |> Attempt.map NamespaceDecl
-        | head :: _ -> head |> failUnexpected "namespace"
-        | [] -> failUnexpectedEOF "namespace"
-    
-    let nameSpacesSource = source |> SeqExt.split (fun x -> x.value = Namespace)
-    nameSpacesSource
-    |> List.map parseNamespace
+    source |> SeqExt.split (fun x -> x.value = Asm || x.value = Def || x.value = Const)
+    |> List.map parseDeclaration
     |> Attempt.liftList

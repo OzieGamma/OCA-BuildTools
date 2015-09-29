@@ -20,29 +20,30 @@ module OCA.WaldoCompiler.Program
 open OFuncLib
 
 open OCA.AsmLib
+open OCA.WaldoCompiler
 
-let compile fileName source = 
+let compile (fileName: string) (source: string) : PositionedListAttempt<Instr> = 
     let tokens = source |> Lexer.tokenizeFile fileName
     tokens
     |> Attempt.bind (Parser.parseFile fileName)
+    |> Attempt.bind InstrEmiter.emit
 
 [<EntryPoint>]
 let main argv = 
     if argv.Length <> 2 then printfn "Invalid args %A" argv
-    else 
-        printfn "Not implemented"
-    (*
+    else
         let fileName = argv.[0]
         let source = System.IO.File.ReadAllText fileName
         
         let asm = 
             source
             |> compile fileName
-            |> Attempt.bind Assembly.toTokens
-            |> Attempt.map (List.map Position.remove)
-            |> Attempt.map Pretty.print
-            |> Attempt.mapFail Lexer.formatPositionInError
-        match asm with
-        | Ok res -> System.IO.File.WriteAllText(argv.[1], res)
-        | Fail msg -> msg |> List.iter (printfn "%s") *)
+        printfn "%A" asm
+//            |> Attempt.bind Transform.instrToTokens
+//            |> Attempt.map (List.map Position.remove)
+//            |> Attempt.map Pretty.print
+//            |> Attempt.mapFail Lexer.formatPositionInError
+//        match asm with
+//        | Ok res -> System.IO.File.WriteAllText(argv.[1], res)
+//        | Fail msg -> msg |> List.iter (printfn "%s")
     0 // return an integer exit code

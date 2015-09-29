@@ -18,7 +18,8 @@
 namespace OCA.WaldoCompiler
 
 type WaldoType =
-    | Unknown
+    | Void
+    | Int
+    | UInt
     | Identifier of string
-    | FuncType of from: WaldoType * towards : WaldoType 
-    | Tuple of List<WaldoType>
+    | FuncType of from: List<WaldoType> * towards : WaldoType
