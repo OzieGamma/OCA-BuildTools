@@ -51,6 +51,7 @@
   <ItemGroup>
     <Compile Include="WaldoType.fs" />
     <Compile Include="Parser.fs" />
+    <Compile Include="UniquenessVerificator.fs" />
     <Compile Include="InstrEmiter.fs" />
     <Compile Include="Program.fs" />
     <None Include="App.config" />

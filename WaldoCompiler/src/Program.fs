@@ -26,7 +26,8 @@ let compile (fileName: string) (source: string) : PositionedListAttempt<Instr> =
     let tokens = source |> Lexer.tokenizeFile fileName
     tokens
     |> Attempt.bind (Parser.parseFile fileName)
-    |> Attempt.bind InstrEmiter.emit
+    |> Attempt.bind UniquenessVerificator.verify
+    |> Attempt.bind InstrEmiter.emit  
 
 [<EntryPoint>]
 let main argv = 

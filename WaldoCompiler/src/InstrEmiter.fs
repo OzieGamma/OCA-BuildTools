@@ -19,7 +19,35 @@ module OCA.WaldoCompiler.InstrEmiter
 
 open OCA.AsmLib
 open OCA.WaldoCompiler
+open OCA.WaldoCompiler.Parser
 open OFuncLib
 
-let emit source =
-    Fail []
+let private compileFunction f = 
+    let rec compileFunctionInternals name body acc = 
+        match body with
+        | [] -> 
+            acc
+            |> Attempt.liftList
+            |> Attempt.map List.rev
+            |> Attempt.map (List.concat)
+        | MethodCallStatement(Positioned(name, pos), args) :: tail -> 
+            let statements = 
+                if args.Length <> 0 then Fail [ Positioned("Args not implemented", pos) ]
+                else Ok [ Positioned(Calli(LabelRef("func;" + name, 0I)), pos) ]
+            compileFunctionInternals name body.Tail (statements :: acc)
+    match f with
+    | DefFunction(attr, Positioned(name, pos), args, retType, body) -> 
+        compileFunctionInternals name body [ Ok [ Positioned(Label("func;" + name), pos) ] ]
+    | AsmFunction(attr, Positioned(name, pos), args, retType, body) -> 
+        Ok(Positioned(Label("func;" + name), pos) :: body)
+
+let emit (source : Tree) : PositionedListAttempt<Instr> = 
+    let main, rest = source |> List.partition (fun decl -> decl.name = "__main")
+    if main
+       |> List.length
+       = 0 then Fail [ Positioned("No __main found", Position.zero) ]
+    else // Exactly 1 main function since UniquenessVerifier passed
+        let compiled = (main.Head |> compileFunction) :: (rest |> List.map compileFunction)
+        compiled
+        |> Attempt.liftList
+        |> Attempt.map (List.concat)

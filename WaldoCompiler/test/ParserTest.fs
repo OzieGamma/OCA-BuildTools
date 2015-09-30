@@ -36,3 +36,28 @@ let parse source =
 [<Test>]
 let ``Parser should be able to parse nothing``() = 
     [ "", [  ] ] |> testOnDataMapAttempt parse
+
+[<Test>]
+let ``Parser should be able to parse a method call``() = 
+    let input = "void main() {} void __main() { main() }"
+    let output = [DefFunction([], pos "main", [], pos Void, []); DefFunction([], pos "__main", [], pos Void, [MethodCallStatement(pos "main", [])])]
+    [input, output] |> testOnDataMapAttempt parse
+
+[<Test>]
+let ``Parser should be able to parse a simple program``() = 
+    let input = "void __main() { int a = 3 }"
+    let output = [DefFunction([], pos "__main", [], pos Void, [VarDeclaration(pos "a", pos Int, ConstExpr(ConstInt(pos 3I)))])]
+    [input, output] |> testOnDataMapAttempt parse
+
+[<Test>]
+let ``Parser should be able to parse attributes``() = 
+    let input = "[Inline] void __main() { }"
+    let output = [DefFunction([pos "Inline"], pos "__main", [], pos Void, [])]
+    [input, output] |> testOnDataMapAttempt parse
+
+[<Test>]
+let ``Parser should be able to parse asm functions``() = 
+    let input = "[Asm] void __main() { nop }"
+    let output = [AsmFunction([pos "Asm"], pos "__main", [], pos Void, [pos Nop])]
+    [input, output] |> testOnDataMapAttempt parse
+    

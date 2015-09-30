@@ -29,35 +29,46 @@ let (|T|_|) target v =
 type Tree = List<Declaration>
 
 and Declaration = 
-    | Global of name : Positioned<string> * expr : Expr
-    | AsmFunction of name : Positioned<string> * arguments : List<Positioned<string> * Positioned<WaldoType>> * returnType : Positioned<WaldoType> * body : List<Positioned<Instr>>
-    | AsmOperator of name : Positioned<string> * arguments : List<Positioned<string> * Positioned<WaldoType>> * returnType : Positioned<WaldoType> * body : List<Positioned<Instr>>
-    | DefFunction of name : Positioned<string> * arguments : List<Positioned<string> * Positioned<WaldoType>> * returnType : Positioned<WaldoType> * body : StatementBlock
-    | DefOperator of name : Positioned<string> * arguments : List<Positioned<string> * Positioned<WaldoType>> * returnType : Positioned<WaldoType> * body : StatementBlock
+    | Global of attributes : List<Positioned<string>> * name : Positioned<string> * tpe : Positioned<WaldoType> * value : Expr
+    | AsmFunction of attributes : List<Positioned<string>> * name : Positioned<string> * arguments : List<Positioned<string> * Positioned<WaldoType>> * returnType : Positioned<WaldoType> * body : List<Positioned<Instr>>
+    | AsmOperator of attributes : List<Positioned<string>> * name : Positioned<string> * arguments : List<Positioned<string> * Positioned<WaldoType>> * returnType : Positioned<WaldoType> * body : List<Positioned<Instr>>
+    | DefFunction of attributes : List<Positioned<string>> * name : Positioned<string> * arguments : List<Positioned<string> * Positioned<WaldoType>> * returnType : Positioned<WaldoType> * body : StatementBlock
+    | DefOperator of attributes : List<Positioned<string>> * name : Positioned<string> * arguments : List<Positioned<string> * Positioned<WaldoType>> * returnType : Positioned<WaldoType> * body : StatementBlock
     member this.position = 
         match this with
-        | Global(Positioned(_, p), _) -> p
-        | AsmFunction(Positioned(_, p), _, _, _) -> p
-        | AsmOperator(Positioned(_, p), _, _, _) -> p
-        | DefFunction(Positioned(_, p), _, _, _) -> p
-        | DefOperator(Positioned(_, p), _, _, _) -> p
+        | Global(_, Positioned(_, p), _, _) -> p
+        | AsmFunction(_, Positioned(_, p), _, _, _) -> p
+        | AsmOperator(_, Positioned(_, p), _, _, _) -> p
+        | DefFunction(_, Positioned(_, p), _, _, _) -> p
+        | DefOperator(_, Positioned(_, p), _, _, _) -> p
+    member this.name = 
+        match this with
+        | Global(_, Positioned(name, _), _, _) -> name
+        | AsmFunction(_, Positioned(name, _), _, _, _) -> name
+        | AsmOperator(_, Positioned(name, _), _, _, _) -> name
+        | DefFunction(_, Positioned(name, _), _, _, _) -> name
+        | DefOperator(_, Positioned(name, _), _, _, _) -> name
 
 and StatementBlock = List<Statement>
 
 and Statement = 
-    | VarDeclaration of var : Positioned<string> * tpe : Positioned<WaldoType> * value : Expr
+    | VarDeclaration of name : Positioned<string> * tpe : Positioned<WaldoType> * value : Expr
+    | MethodCallStatement of name : Positioned<string> * args : List<Expr>
     member this.position = 
         match this with
-        | VarDeclaration(Positioned(p, _), _, _) -> p
+        | VarDeclaration(Positioned(_, p), _, _) -> p
+        | MethodCallStatement(Positioned(_, p), _) -> p
 
 and Expr = 
     | Variable of name : Positioned<string>
     | OperatorCall of left : Expr * op : Positioned<string> * right : Expr
+    | MethodCall of name : Positioned<string> * args : List<Expr>
     | ConstExpr of ConstExpr
     member this.position = 
         match this with
         | Variable(Positioned(_, p)) -> p
         | OperatorCall(left, _, _) -> left.position
+        | MethodCall(Positioned(_, p), _) -> p
         | ConstExpr expr -> expr.position
 
 and ConstExpr = 
@@ -74,6 +85,7 @@ and ConstExpr =
         | ConstChar(Positioned(_, p)) -> p
         | ConstBool(Positioned(_, p)) -> p
 
+// Parses the file
 let parseFile (fileName : string) (source : List<Positioned<Token>>) : GenericAttempt<Tree, Positioned<string>> = 
     let fail msg pos = Fail [ Positioned(msg, pos) ]
     let failUnexpected expected (head : Positioned<'T>) = 
@@ -103,6 +115,20 @@ let parseFile (fileName : string) (source : List<Positioned<Token>>) : GenericAt
         | head :: tail -> head |> failUnexpected "block begin", tail
         | [] -> failUnexpectedEOF "block begin", []
     
+    let parseAttributes source: PositionedListAttempt<string> * List<Positioned<Token>> =
+        let rec parseAttrList acc source =
+            match source with
+            | T RightBracket :: tail -> Ok (acc |> List.rev), tail
+            | T Comma :: Positioned(Id attr, pos) :: tail ->
+                parseAttrList [Positioned(attr, pos)] tail
+            | head :: tail -> head |> failUnexpected ", or ] in attribute", tail
+            | [] -> failUnexpectedEOF ", or ] in attribute", []
+
+        match source with
+        | T LeftBracket :: Positioned(Id attr, pos) :: tail ->
+            parseAttrList [Positioned(attr, pos)] tail
+        | _ -> Ok [], source
+
     let rec parseType source : PositionedAttempt<WaldoType> * List<Positioned<Token>> = 
         let rec parseSimpleType source = 
             let parseTypeList source = 
@@ -134,7 +160,7 @@ let parseFile (fileName : string) (source : List<Positioned<Token>>) : GenericAt
             | [] -> failUnexpectedEOF "type", []
         match source with
         | T Colon :: tail -> parseSimpleType tail
-        | Positioned(_, pos) :: tail -> Ok(Positioned(Void, pos)), source
+        | Positioned(_, pos) :: tail -> Ok(Positioned(Void, pos)), tail
         | [] -> failUnexpectedEOF "type", []
     
     let parseArgumentList source = 
@@ -161,13 +187,6 @@ let parseFile (fileName : string) (source : List<Positioned<Token>>) : GenericAt
         | head :: tail -> head |> failUnexpected "argument list", tail
         | [] -> failUnexpectedEOF "argument list", []
     
-    let parseVarValDeclList source = 
-        match source with
-        | Positioned(Id name, pos) :: tail -> 
-            let tpe, tail = parseType tail
-            (tpe |> Attempt.map (fun tpe -> (Positioned(name, pos), tpe) :: [])), tail
-        | other -> parseArgumentList other
-    
     let parseConstExpr source = 
         match source with
         | Positioned(IntLit lit, pos) :: tail -> Ok(ConstInt(Positioned(lit, pos))), tail
@@ -178,34 +197,35 @@ let parseFile (fileName : string) (source : List<Positioned<Token>>) : GenericAt
         | head :: tail -> head |> failUnexpected "const expressions", tail
         | [] -> failUnexpectedEOF "const expression", []
     
-    let rec parseNamespaceName acc source = 
-        match source with
-        | Positioned(Id str, _) :: T Colon :: tail -> parseNamespaceName (acc + str + ";") tail
-        | Positioned(Id str, pos) :: tail -> Ok((acc + str) |> Position.add pos), tail
-        | head :: tail -> head |> failUnexpected "Id as namespace name", tail
-        | [] -> failUnexpectedEOF "namespace name", []
+    //Parses an asm function WITH the left paren.
+    let parseAsm attr name retType node source = 
+        let args, argsTail = parseArgumentList source
+        let body, bodyTail = blockInsides argsTail
+        (args, body |> Attempt.bind Transform.tokensToInstr) 
+        |> Attempt.lift2curriedMap (fun args body -> node (attr, name, args, retType, body)), bodyTail
     
-    let parseAsmfunc source = 
-        let parseGeneric node name pos tail = 
-            let args, argsTail = parseArgumentList tail
-            let retType, retTail = parseType argsTail
-            
-            let body = 
-                blockInsides retTail
-                |> failIfTailNotEmpry "asm function end"
-                |> Attempt.bind Transform.tokensToInstr
-            (args, retType, body)
-            |> Attempt.lift3
-            |> Attempt.map (fun (args, retType, body) -> node (name |> Position.add pos, args, retType, body))
-        match source with
-        | Positioned(Id name, pos) :: tail -> parseGeneric AsmFunction name pos tail
-        | Positioned(Operator name, pos) :: tail -> parseGeneric AsmOperator name pos tail
-        | head :: _ -> head |> failUnexpected "asm function name"
-        | [] -> failUnexpectedEOF "asm function name"
-    
+    // Parses an Expression
     let rec parseExpr source = 
+        let parseMethodArgs source = 
+            let rec inner acc source = 
+                let expr, tail = parseExpr source
+                match tail with
+                | T Comma :: tail -> inner (expr :: acc) tail
+                | T RightParen :: tail -> 
+                    acc
+                    |> List.rev
+                    |> Attempt.liftList, tail
+                | head :: tail -> failUnexpected ", or ) in argument list of function call" head, tail
+                | [] -> failUnexpectedEOF "name after type in var decl", tail
+            match source with
+            | T RightParen :: tail -> Ok [], tail
+            | _ -> inner [] source
+        
         let rec parseSimpleExpr source = 
             match source with
+            | Positioned(Id funcName, pos) :: T LeftParen :: tail -> 
+                let args, tail = parseMethodArgs tail
+                args |> Attempt.map (fun args -> MethodCall(Positioned(funcName, pos), args)), tail
             | Positioned(Id varName, pos) :: tail -> Ok(Variable(Positioned(varName, pos))), tail
             | other -> 
                 let constExpr, tail = parseConstExpr other
@@ -245,15 +265,17 @@ let parseFile (fileName : string) (source : List<Positioned<Token>>) : GenericAt
                 let statement = (expr, body) |> Attempt.lift2curriedMap (fun expr body -> WhileLoop(expr, body))
                 statement :: parseStatementBlockBody tail
             
+            *)
             let parseMethodCallStatment source = 
                 let expr, tail = parseExpr source
                 match expr with
-                | Ok(MethodCall(name, this, args)) -> Ok(MethodCallStatement(name, this, args)) :: parseStatementBlockBody tail
-                | Ok expr -> Fail [ Positioned("Only method calls can be used as statements and expressions", expr.position) ] :: parseStatementBlockBody tail
+                | Ok(MethodCall(name, args)) -> Ok(MethodCallStatement(name, args)) :: parseStatementBlockBody tail
+                | Ok expr -> 
+                    Fail [ Positioned("Only method calls can be used as statements and expressions", expr.position) ] 
+                    :: parseStatementBlockBody tail
                 | Fail msg -> Fail msg :: parseStatementBlockBody tail
-
-            *)
             match source with
+            | Positioned(Id _, _) :: T LeftParen :: _ -> parseMethodCallStatment source
             | head :: tail -> 
                 let tpe, tail = parseType source
                 match tail with
@@ -263,46 +285,68 @@ let parseFile (fileName : string) (source : List<Positioned<Token>>) : GenericAt
                         (tpe, expr) 
                         |> Attempt.lift2curriedMap (fun tpe expr -> VarDeclaration(Positioned(name, pos), tpe, expr))
                     statement :: parseStatementBlockBody tail
-                | head :: tail -> failUnexpected "Name after type in var decl" head :: parseStatementBlockBody tail
-                | [] -> failUnexpectedEOF "Name after type in var decl" :: []
+                | head :: tail -> failUnexpected "name after type in var decl" head :: parseStatementBlockBody tail
+                | [] -> failUnexpectedEOF "name after type in var decl" :: []
             | [] -> []
         
         let body, tail = blockInsides source
         body |> Attempt.bind (fun body -> parseStatementBlockBody body |> Attempt.liftList), tail
     
-    //|> Attempt.map List.rev, tail
-    let parseDefFunc source = 
-        let parseGeneric node name pos tail = 
-            let args, argsTail = parseArgumentList tail
-            let retType, retTail = parseType argsTail
-            let body = parseStatementBlock retTail |> failIfTailNotEmpry "def function end"
-            (args, retType, body)
-            |> Attempt.lift3
-            |> Attempt.map (fun (args, retType, body) -> node (name |> Position.add pos, args, retType, body))
-        match source with
-        | Positioned(Id name, pos) :: tail -> parseGeneric DefFunction name pos tail
-        | Positioned(Operator name, pos) :: tail -> parseGeneric DefOperator name pos tail
-        | head :: _ -> head |> failUnexpected "def function name"
-        | [] -> failUnexpectedEOF "def function name"
+    //Parses a function WITH the left paren.
+    let parseDef attr name retType node source = 
+        let args, argsTail = parseArgumentList source
+        let body, bodyTail = parseStatementBlock argsTail
+        (args, body) |> Attempt.lift2curriedMap (fun args body -> node (attr, name, args, retType, body)), bodyTail
     
-    let parseConst source = 
-        match source with
-        | Positioned(Id name, pos) :: T Equals :: tail -> 
-            tail
-            |> parseConstExpr
-            |> failIfTailNotEmpry "End of const expression"
-            |> Attempt.map (fun body -> Global(Positioned(name, pos), ConstExpr(body)))
-        | head :: _ -> head |> failUnexpected "constant identifier"
-        | [] -> failUnexpectedEOF "constant identifier"
+    // Parses a global AFTER the equals sign
+    let parseGlobal attr name tpe source = 
+        let expr, tail = source |> parseExpr
+        expr |> Attempt.map (fun body -> Global(attr, name, tpe, body)), tail
     
-    let parseDeclaration source : GenericAttempt<Declaration, Positioned<string>> = 
-        match source with
-        | T Asm :: tail -> parseAsmfunc tail
-        | T Def :: tail -> parseDefFunc tail
-        | T Const :: tail -> parseConst tail
-        | head :: _ -> head |> failUnexpected "\"using\" or \"asm\" or \"def\" or \"const\""
-        | [] -> failUnexpectedEOF "declaration"
+    let rec parseDeclaration acc source : GenericAttempt<List<Declaration>, Positioned<string>> = 
+        if source |> List.isEmpty then acc |> Attempt.liftList
+        else
+            // All declarations can have attributes
+            let attributes, attrTail = parseAttributes source
+            // All declarations start with a type
+            let tpeAttempt, tail = parseType attrTail
+            match (attributes, tpeAttempt) |> Attempt.lift2 with
+            | Ok(attr, tpe) ->
+                let asm = attr |> List.exists (fun attrName -> attrName |> Position.remove = "Asm")
+
+                if asm then
+                    match tail with
+                    | Positioned(Id name, pos) :: T LeftParen :: _ -> 
+                        let posName = Positioned(name, pos)
+                        // WITH left paren, WITHOUT name
+                        let newDecl, declTail = parseAsm attr posName tpe AsmFunction tail.Tail
+                        parseDeclaration (newDecl :: acc) declTail
+                    | Positioned(Id name, pos) :: T Equals :: tail -> Fail [Positioned("Globals can't have the Asm attribute", pos)]
+                    | Positioned(Operator name, pos) :: tail -> 
+                        let operator, operatorTail = parseAsm attr (Positioned(name, pos)) tpe AsmOperator tail
+                        parseDeclaration (operator :: acc) operatorTail
+                    | head :: _ -> head |> failUnexpected "asm declaration name"
+                    | [] -> failUnexpectedEOF "asm declaration name"
+                else
+                    match tail with
+                    // Since its an ascii name, it could be a function or a global 
+                    | Positioned(Id name, pos) :: T LeftParen :: _  -> 
+                        let posName = Positioned(name, pos)
+                        // WITH left paren, WITHOUT name
+                        let newDecl, declTail = parseDef attr posName tpe DefFunction tail.Tail
+                        parseDeclaration (newDecl :: acc) declTail
+                    | Positioned(Id name, pos) :: T Equals :: afterEquals -> 
+                        let posName = Positioned(name, pos)
+                        let newDecl, declTail = parseGlobal attr posName tpe afterEquals
+                        parseDeclaration (newDecl :: acc) declTail
+                    | Positioned(Operator name, pos) :: tail -> 
+                        let operator, operatorTail = parseDef attr (Positioned(name, pos)) tpe DefOperator tail
+                        parseDeclaration (operator :: acc) operatorTail
+                    | head :: _ -> head |> failUnexpected "declaration name"
+                    | [] -> failUnexpectedEOF "declaration name"
+            | Fail msg -> // Make sure to get other errors
+                match parseDeclaration acc tail with
+                | Ok _ -> Fail msg
+                | Fail msg2 -> Fail([ msg; msg2 ] |> List.concat)
     
-    source |> SeqExt.split (fun x -> x.value = Asm || x.value = Def || x.value = Const)
-    |> List.map parseDeclaration
-    |> Attempt.liftList
+    parseDeclaration [] source |> Attempt.map (fun list -> list |> List.rev)

@@ -42,9 +42,12 @@
     <Reference Include="System.Numerics" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="FunctionalTests.fs" />
+    <Compile Include="RejectFunctionalTests.fs" />
+    <Compile Include="InstrEmiterTest.fs" />
+    <Compile Include="UniquenessVerificatorTest.fs" />
     <Compile Include="ParserRejectTest.fs" />
     <Compile Include="ParserTest.fs" />
+    <Compile Include="FunctionalTests.fs" />
   </ItemGroup>
   <PropertyGroup>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
