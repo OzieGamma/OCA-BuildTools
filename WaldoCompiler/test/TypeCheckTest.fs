@@ -1,5 +1,5 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="RejectFunctionalTests.fs" company="Oswald Maskens">
+// <copyright file="TypeCheckTest.fs" company="Oswald Maskens">
 //   Copyright 2014 Oswald Maskens
 //   
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,23 +15,22 @@
 //   limitations under the License.
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
-module OCA.WaldoCompiler.Test.RejectFunctionalTests
+module OCA.WaldoCompiler.Test.TypeCheckTest
 
-open OFuncLib
 open NUnit.Framework
-
 open OCA.AsmLib
 open OCA.WaldoCompiler
+open OCA.WaldoCompiler.Parser
+open OFuncLib
 
 let pos = Position.addZero
 let p = Position.zero
 
-let compile source = 
-    source
-    |> Program.compile "file"
-    |> Attempt.map (List.map Position.remove)
-
 [<Test>]
-let ``Should reject when __main does not return void``() = 
-    let test1 = "int __main() { }"
-    [test1] |> testOnDataShouldFail compile
+let ``TypeCheck should reject invalid type in variable declaration``() = 
+    [ DefFunction
+          ([], pos "main", [], pos Void, 
+           [ VarDeclaration(pos "a", pos (Identifier "int"), ConstExpr(ConstBool(pos true))) ])
+      DefFunction([], pos "main", [], pos (Identifier "Int"), []) ]
+    |> UniquenessVerificator.verify
+    |> shouldFail

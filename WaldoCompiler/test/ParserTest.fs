@@ -34,30 +34,47 @@ let parse source =
     |> Attempt.bind (Parser.parseFile "f")
 
 [<Test>]
-let ``Parser should be able to parse nothing``() = 
-    [ "", [  ] ] |> testOnDataMapAttempt parse
+let ``Parser should be able to parse nothing``() = [ "", [] ] |> testOnDataMapAttempt parse
 
 [<Test>]
 let ``Parser should be able to parse a method call``() = 
-    let input = "void main() {} void __main() { main() }"
-    let output = [DefFunction([], pos "main", [], pos Void, []); DefFunction([], pos "__main", [], pos Void, [MethodCallStatement(pos "main", [])])]
-    [input, output] |> testOnDataMapAttempt parse
+    let input1 = "Void main() {} Void __main() { main() }"
+    
+    let output1 = 
+        [ DefFunction([], pos "main", [], pos Void, [])
+          DefFunction([], pos "__main", [], pos Void, [ MethodCallStatement(pos "main", []) ]) ]
+    
+    let input2 = "Void main(Int a, Int b) {} Void __main() { Int a = 3 Int b = 5 main(a, b) }"
+    
+    let output2 = 
+        [ DefFunction([], pos "main", 
+                      [ pos "a", pos (Identifier "Int")
+                        pos "b", pos (Identifier "Int") ], pos Void, [])
+          DefFunction([], pos "__main", [], pos Void, 
+                      [ VarDeclaration(pos "a", pos (Identifier "Int"), ConstExpr(ConstInt(pos 3I)))
+                        VarDeclaration(pos "b", pos (Identifier "Int"), ConstExpr(ConstInt(pos 5I)))
+                        MethodCallStatement(pos "main", 
+                                            [ Variable(pos "a")
+                                              Variable(pos "b") ]) ]) ]
+    [ input1, output1
+      input2, output2 ]
+    |> testOnDataMapAttempt parse
 
 [<Test>]
 let ``Parser should be able to parse a simple program``() = 
-    let input = "void __main() { int a = 3 }"
-    let output = [DefFunction([], pos "__main", [], pos Void, [VarDeclaration(pos "a", pos Int, ConstExpr(ConstInt(pos 3I)))])]
-    [input, output] |> testOnDataMapAttempt parse
+    let input = "Void __main() { Int a = 3 }"
+    let output = 
+        [ DefFunction([], pos "__main", [], pos Void, [ VarDeclaration(pos "a", pos (Identifier "Int"), ConstExpr(ConstInt(pos 3I))) ]) ]
+    [ input, output ] |> testOnDataMapAttempt parse
 
 [<Test>]
 let ``Parser should be able to parse attributes``() = 
-    let input = "[Inline] void __main() { }"
-    let output = [DefFunction([pos "Inline"], pos "__main", [], pos Void, [])]
-    [input, output] |> testOnDataMapAttempt parse
+    let input = "[Inline] Void __main() { }"
+    let output = [ DefFunction([ pos "Inline" ], pos "__main", [], pos Void, []) ]
+    [ input, output ] |> testOnDataMapAttempt parse
 
 [<Test>]
 let ``Parser should be able to parse asm functions``() = 
-    let input = "[Asm] void __main() { nop }"
-    let output = [AsmFunction([pos "Asm"], pos "__main", [], pos Void, [pos Nop])]
-    [input, output] |> testOnDataMapAttempt parse
-    
+    let input = "[Asm] Void __main() { nop }"
+    let output = [ AsmFunction([ pos "Asm" ], pos "__main", [], pos Void, [ pos Nop ]) ]
+    [ input, output ] |> testOnDataMapAttempt parse

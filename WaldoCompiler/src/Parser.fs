@@ -130,49 +130,46 @@ let parseFile (fileName : string) (source : List<Positioned<Token>>) : GenericAt
         | _ -> Ok [], source
 
     let rec parseType source : PositionedAttempt<WaldoType> * List<Positioned<Token>> = 
-        let rec parseSimpleType source = 
-            let parseTypeList source = 
-                let rec inner acc source = 
-                    let tpe, tail = parseSimpleType source
-                    match tail with
-                    | T Comma :: tail -> inner (tpe :: acc) tail
-                    | _ -> (tpe :: acc), tail
-                inner [] source
-            match source with
-            | Positioned(Id "Void", pos) :: tail -> Ok(Positioned(Void, pos)), tail
-            | Positioned(Id name, pos) :: tail -> Ok(Positioned(Identifier name, pos)), tail
-            | Positioned(LeftBracket, pos) :: tail -> 
-                let fromTpe, fromTail = parseTypeList tail
-                match fromTail with
-                | T(Operator "=>") :: tail -> 
-                    let toTpe, toTail = parseSimpleType tail
-                    match toTail with
-                    | T RightBracket :: tail -> 
-                        (fromTpe |> Attempt.liftList, toTpe)
-                        |> Attempt.lift2
-                        |> Attempt.map (fun (f, t) -> Positioned(FuncType(f |> List.map Position.remove, t.value), pos)), 
-                        tail
-                    | head :: tail -> head |> failUnexpected "] in func type", tail
-                    | [] -> failUnexpectedEOF "] in func type", []
-                | head :: tail -> head |> failUnexpected "=> in func type", tail
-                | [] -> failUnexpectedEOF "=> in func type", []
-            | head :: tail -> head |> failUnexpected "type", tail
-            | [] -> failUnexpectedEOF "type", []
+        let parseTypeList source = 
+            let rec inner acc source = 
+                let tpe, tail = parseType source
+                match tail with
+                | T Comma :: tail -> inner (tpe :: acc) tail
+                | _ -> (tpe :: acc), tail
+            inner [] source
         match source with
-        | T Colon :: tail -> parseSimpleType tail
-        | Positioned(_, pos) :: tail -> Ok(Positioned(Void, pos)), tail
+        | Positioned(Id "Void", pos) :: tail -> Ok(Positioned(Void, pos)), tail
+        | Positioned(Id name, pos) :: tail -> Ok(Positioned(Identifier name, pos)), tail
+        | Positioned(LeftBracket, pos) :: tail -> 
+            let fromTpe, fromTail = parseTypeList tail
+            match fromTail with
+            | T(Operator "=>") :: tail -> 
+                let toTpe, toTail = parseType tail
+                match toTail with
+                | T RightBracket :: tail -> 
+                    (fromTpe |> Attempt.liftList, toTpe)
+                    |> Attempt.lift2
+                    |> Attempt.map (fun (f, t) -> Positioned(FuncType(f |> List.map Position.remove, t.value), pos)), tail
+                | head :: tail -> head |> failUnexpected "] in func type", tail
+                | [] -> failUnexpectedEOF "] in func type", []
+            | head :: tail -> head |> failUnexpected "=> in func type", tail
+            | [] -> failUnexpectedEOF "=> in func type", []
+        | head :: tail -> head |> failUnexpected "type", tail
         | [] -> failUnexpectedEOF "type", []
     
     let parseArgumentList source = 
-        let rec inner acc source = 
+        let rec inner acc source =
             match source with
-            | Positioned(Id name, pos) :: tail -> 
-                let tpe, tail = parseType tail
-                let newAcc = (Positioned(name, pos), tpe) :: acc
+            | T RightParen :: _ -> acc, source
+            | _ ->
+                let tpe, tail = parseType source
                 match tail with
-                | T Comma :: tail -> inner newAcc tail
-                | _ -> newAcc, tail
-            | _ -> acc, source
+                | Positioned(Id name, pos) :: tail -> 
+                    let newAcc = (Positioned(name, pos), tpe) :: acc
+                    match tail with
+                    | T Comma :: tail -> inner newAcc tail
+                    | _ -> newAcc, tail
+                | _ -> acc, source
         match source with
         | T LeftParen :: tail -> 
             let argsList, tail = inner [] tail
@@ -212,7 +209,7 @@ let parseFile (fileName : string) (source : List<Positioned<Token>>) : GenericAt
                 match tail with
                 | T Comma :: tail -> inner (expr :: acc) tail
                 | T RightParen :: tail -> 
-                    acc
+                    (expr :: acc)
                     |> List.rev
                     |> Attempt.liftList, tail
                 | head :: tail -> failUnexpected ", or ) in argument list of function call" head, tail

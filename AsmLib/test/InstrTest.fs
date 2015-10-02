@@ -38,7 +38,7 @@ let regularInstructions =
       Id "callr" :: Id "s4" :: [], Callr(SReg 4us)
       Id "ret" :: [], Ret
       Dot :: Id "word" :: UIntLit 4242I :: [], ImmWord(Value 4242I)
-      Dot :: Def :: Id "oswald" :: UIntLit 4242I :: [], Define("oswald", 4242I)
+      Dot :: Id "def" :: Id "oswald" :: UIntLit 4242I :: [], Define("oswald", 4242I)
       Id "OzieGamma" :: Colon :: [], Label "OzieGamma"
       Id "Int_add" :: Colon :: [], Label "Int_add"
       Dot :: Id "text" :: StringLit("string text") :: [], Text("string text") ]
@@ -91,7 +91,7 @@ let validInstructions = friendlyData |> List.map (fun (_, x) -> x)
 
 let invalidInstructions = 
     [ Id "RAM" :: Operator "+" :: IntLit 1I :: []
-      Dot :: Def :: Id "RAM" :: Operator "+" :: UIntLit 5353I :: []
+      Dot :: Id "def" :: Id "RAM" :: Operator "+" :: UIntLit 5353I :: []
       Id "ldw" :: Id "t10" :: Id "s4" :: Id "R" :: Operator "-" :: Id "AM" :: []
       Id "OZ" :: Colon :: Id "GE" :: [] ]
 

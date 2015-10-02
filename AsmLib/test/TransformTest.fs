@@ -81,7 +81,7 @@ let tokenData =
         [ Id "START"
           Colon
           Dot
-          Def
+          Id "def"
           Id "word"
           IntLit 42I
           Dot

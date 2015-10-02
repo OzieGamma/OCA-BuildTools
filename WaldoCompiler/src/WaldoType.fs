@@ -19,7 +19,5 @@ namespace OCA.WaldoCompiler
 
 type WaldoType =
     | Void
-    | Int
-    | UInt
     | Identifier of string
     | FuncType of from: List<WaldoType> * towards : WaldoType

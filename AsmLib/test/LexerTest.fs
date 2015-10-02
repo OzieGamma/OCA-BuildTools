@@ -26,7 +26,8 @@ let listify f inp = f inp |> List.ofSeq
 (* formatPositionInError *)
 [<Test>]
 let ``formatPositionInError should correctly format string``() = 
-    [ Positioned("error", Position(42u, 1u, "f")), "Error in file f [1:42]: error" ] |> testOnDataMap Lexer.formatPositionInError
+    [ Positioned("error", Position(42u, 1u, "f")), "Error in file f [1:42]: error" ] 
+    |> testOnDataMap Lexer.formatPositionInError
 
 (* addPositionInCol *)
 [<Test>]
@@ -128,13 +129,7 @@ let ``tokenize should correctly tokenize``() =
           Positioned(Operator "+", Position(23u, 1u, "f"))
           Positioned(UIntLit 42I, Position(24u, 1u, "f")) ]
     
-    let test2 = 
-        "asm def namespace const", 
-        [ Positioned(Asm, Position(1u, 1u, "f"))
-          Positioned(Def, Position(5u, 1u, "f"))
-          Positioned(Namespace, Position(9u, 1u, "f"))
-          Positioned(Const, Position(19u, 1u, "f")) ]
-    
+    let test2 = "&", [ Positioned(Operator "&", Position(1u, 1u, "f")) ]
     let test3 = "0xFF", [ Positioned(IntLit 255I, Position(1u, 1u, "f")) ]
     
     let test4 = 
@@ -150,13 +145,6 @@ let ``tokenize should correctly tokenize``() =
     let test6 = ";System;Collections", [ Positioned(Id ";System;Collections", Position(1u, 1u, "f")) ]
     
     let test7 = 
-        "using System:Collections", 
-        [ Positioned(Using, Position(1u, 1u, "f"))
-          Positioned(Id "System", Position(7u, 1u, "f"))
-          Positioned(Colon, Position(13u, 1u, "f"))
-          Positioned(Id "Collections", Position(14u, 1u, "f")) ]
-    
-    let test8 = 
         "for i = 0u upto 42u", 
         [ Positioned(For, Position(1u, 1u, "f"))
           Positioned(Id "i", Position(5u, 1u, "f"))
@@ -165,7 +153,7 @@ let ``tokenize should correctly tokenize``() =
           Positioned(Upto, Position(12u, 1u, "f"))
           Positioned(UIntLit 42I, Position(17u, 1u, "f")) ]
     
-    let test9 = 
+    let test8 = 
         "while (i < 4)", 
         [ Positioned(While, Position(1u, 1u, "f"))
           Positioned(LeftParen, Position(7u, 1u, "f"))
@@ -174,7 +162,7 @@ let ``tokenize should correctly tokenize``() =
           Positioned(IntLit 4I, Position(12u, 1u, "f"))
           Positioned(RightParen, Position(13u, 1u, "f")) ]
     
-    let test10 = 
+    let test9 = 
         "while (i <= 4)", 
         [ Positioned(While, Position(1u, 1u, "f"))
           Positioned(LeftParen, Position(7u, 1u, "f"))
@@ -183,17 +171,16 @@ let ``tokenize should correctly tokenize``() =
           Positioned(IntLit 4I, Position(13u, 1u, "f"))
           Positioned(RightParen, Position(14u, 1u, "f")) ]
     
-    let test11 = "'a'", [ Positioned(CharLit('a'), Position(1u, 1u, "f")) ]
-    let test12 = "'\\n'", [ Positioned(CharLit('\n'), Position(1u, 1u, "f")) ]
-    let test13 = "\"string\"", [ Positioned(StringLit("string"), Position(1u, 1u, "f")) ]
-    let test14 = "\"str\\ning\"", [ Positioned(StringLit("str\ning"), Position(1u, 1u, "f")) ]
-    let test15 = "\"\\\\n\"", [ Positioned(StringLit("\\n"), Position(1u, 1u, "f")) ]
-    let test16 = "val", [ Positioned(Val, Position(1u, 1u, "f")) ]
-    let test17 = "var", [ Positioned(Var, Position(1u, 1u, "f")) ]
-    let test18 = "true", [ Positioned(BoolLit(true), Position(1u, 1u, "f")) ]
-    let test19 = "false", [ Positioned(BoolLit(false), Position(1u, 1u, "f")) ]
-    [ test1; test2; test3; test4; test5; test6; test7; test8; test9; test10; test11; test12; test13; test14; test15; test16; test17; test18; test19 ] 
-    |> testOnDataMapAttempt tokenize
+    let test10 = "'a'", [ Positioned(CharLit('a'), Position(1u, 1u, "f")) ]
+    let test11 = "'\\n'", [ Positioned(CharLit('\n'), Position(1u, 1u, "f")) ]
+    let test12 = "\"string\"", [ Positioned(StringLit("string"), Position(1u, 1u, "f")) ]
+    let test13 = "\"str\\ning\"", [ Positioned(StringLit("str\ning"), Position(1u, 1u, "f")) ]
+    let test14 = "\"\\\\n\"", [ Positioned(StringLit("\\n"), Position(1u, 1u, "f")) ]
+    let test15 = "->", [ Positioned(RightArrow, Position(1u, 1u, "f")) ]
+    let test16 = "true", [ Positioned(BoolLit(true), Position(1u, 1u, "f")) ]
+    let test17 = "false", [ Positioned(BoolLit(false), Position(1u, 1u, "f")) ]
+    [ test1; test2; test3; test4; test5; test6; test7; test8; test9; test10; test11; test12; test13; test14; test15; 
+      test16; test17 ] |> testOnDataMapAttempt tokenize
 
 [<Test>]
 let ``tokenize should reject unclosed char and string literals``() = [ "'a"; "\"" ] |> testOnDataShouldFail tokenize
@@ -205,7 +192,7 @@ let ``tokenize should reject invalid char literals``() = [ "'aa'"; "'\\'" ] |> t
 let ``tokenizeFile should function correctly``() = 
     let test1 = 
         "asm\n{#comment }\n}", 
-        [ Positioned(Asm, Position(1u, 1u, "f"))
+        [ Positioned(Id "asm", Position(1u, 1u, "f"))
           Positioned(LeftBrace, Position(1u, 2u, "f"))
           Positioned(RightBrace, Position(1u, 3u, "f")) ]
     [ test1 ] |> testOnDataMapAttempt (Lexer.tokenizeFile "f")

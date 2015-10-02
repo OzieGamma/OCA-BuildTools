@@ -32,30 +32,34 @@ let compile source =
 
 [<Test>]
 let ``Should compile a method call``() = 
-    let input = "void main() {} void __main() { main() }"
+    let input = "Void main() {} Void __main() { main() }"
     
     let output = 
         [ Label "func;__main"
           Calli(LabelRef("func;main", 0I))
-          Label "func;main" ]
+          Ret
+          Label "func;main"
+          Ret ]
     [ input, output ] |> testOnDataMapAttempt compile
 
 [<Test>]
 let ``Should compile a simple program``() = 
-    let input = "void __main() { int a = 3 int b = 5 int c = a + b }"
+    let input = "Void __main() { Int a = 3 Int b = 5 Int c = a + b }"
     
     let output = 
         [ Label "func;__main"
           Addi(TReg(0us), Zero, Value(3I))
           Addi(TReg(1us), Zero, Value(5I))
-          Add(TReg(2us), TReg(0us), TReg(1us)) ]
+          Add(TReg(2us), TReg(0us), TReg(1us))
+          Ret ]
     [ input, output ] |> testOnDataMapAttempt compile
 
 [<Test>]
 let ``Should compile an asm function``() = 
-    let input = "[Asm] void __main() { nop }"
+    let input = "[Asm] Void __main() { nop ret }"
     
     let output = 
         [ Label "func;__main"
-          Nop ]
+          Nop
+          Ret ]
     [ input, output ] |> testOnDataMapAttempt compile

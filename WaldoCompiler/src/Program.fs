@@ -27,6 +27,7 @@ let compile (fileName: string) (source: string) : PositionedListAttempt<Instr> =
     tokens
     |> Attempt.bind (Parser.parseFile fileName)
     |> Attempt.bind UniquenessVerificator.verify
+    |> Attempt.bind TypeCheck.check
     |> Attempt.bind InstrEmiter.emit  
 
 [<EntryPoint>]

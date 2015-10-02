@@ -32,7 +32,7 @@ let emit source =
     |> Attempt.map (List.map Position.remove)
 
 [<Test>]
-let ``Should compile a method call``() = 
+let ``Should emit correctly for a simple method call``() = 
     let input = 
         [ DefFunction([], pos "main", [], pos Void, [])
           DefFunction([], pos "__main", [], pos Void, [ MethodCallStatement(pos "main", []) ]) ]
@@ -40,27 +40,52 @@ let ``Should compile a method call``() =
     let output = 
         [ Label "func;__main"
           Calli(LabelRef("func;main", 0I))
-          Label "func;main" ]
+          Ret
+          Label "func;main"
+          Ret ]
     
     [ input, output ] |> testOnDataMapAttempt emit
 
 [<Test>]
-let ``Should compile a simple program``() = 
+let ``Should emit correctly for a method call with arguments``() = 
     let input = 
-        [ DefFunction([], pos "__main", [], pos Void, [ VarDeclaration(pos "a", pos Int, ConstExpr(ConstInt(pos 3I))) ]) ]
+        [ DefFunction([], pos "main", [ (pos "a", pos (Identifier "Int")) ], pos Void, [])
+          DefFunction([], pos "__main", [], pos Void, [ MethodCallStatement(pos "main", [ ConstExpr(ConstInt(pos 5I)) ]) ]) ]
+    
+    let output = 
+        [ Label "func;__main"
+          Addi(SReg(0us), Zero, Value(5I))
+          Calli(LabelRef("func;main", 0I))
+          Ret
+          Label "func;main"
+          Ret ]
+    
+    [ input, output ] |> testOnDataMapAttempt emit
+
+[<Test>]
+let ``Should emit correctly for a simple program``() = 
+    let input = 
+        [ DefFunction
+              ([], pos "__main", [], pos Void, 
+               [ VarDeclaration(pos "a", pos (Identifier "Int"), ConstExpr(ConstInt(pos 3I))) ]) ]
     
     let output = 
         [ Label "func;__main"
           Addi(TReg(0us), Zero, Value(3I))
-          Addi(TReg(1us), Zero, Value(5I))
-          Add(TReg(2us), TReg(0us), TReg(1us)) ]
+          Add(TReg(2us), TReg(0us), TReg(1us))
+          Ret ]
     [ input, output ] |> testOnDataMapAttempt emit
 
 [<Test>]
-let ``Parser should be able to parse asm functions``() = 
-    let input = [ AsmFunction([ pos "Asm" ], pos "__main", [], pos Void, [ pos Nop ]) ]
+let ``Should emit correctly for asm functions``() = 
+    let input = 
+        [ AsmFunction([ pos "Asm" ], pos "__main", [], pos Void, 
+                      [ pos Nop
+                        pos Ret ]) ]
     
     let output = 
         [ Label "func;__main"
-          Nop ]
+          Nop
+          Ret ]
+    
     [ input, output ] |> testOnDataMapAttempt emit

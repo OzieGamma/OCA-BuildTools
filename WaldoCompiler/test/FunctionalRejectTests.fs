@@ -1,5 +1,5 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="ParserRejectTest.fs" company="Oswald Maskens">
+// <copyright file="FunctionalRejectTests.fs" company="Oswald Maskens">
 //   Copyright 2014 Oswald Maskens
 //   
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,7 +15,7 @@
 //   limitations under the License.
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
-module OCA.WaldoCompiler.Test.ParserRejectTest
+module OCA.WaldoCompiler.Test.RejectFunctionalTests
 
 open OFuncLib
 open NUnit.Framework
@@ -26,14 +26,12 @@ open OCA.WaldoCompiler
 let pos = Position.addZero
 let p = Position.zero
 
-let parse source = 
+let compile source = 
     source
-    |> Lexer.tokenizeFile "f"
+    |> Program.compile "file"
     |> Attempt.map (List.map Position.remove)
-    |> Attempt.map (List.map Position.addZero)
-    |> Attempt.bind (Parser.parseFile "f")
 
 [<Test>]
-let ``Parser should reject invalid const clauses``() = 
-    [ "namespace System { const TIME =  }"; "namespace System { const TIME }"; "namespace System { const TIME = 2u"; "namespace System { const TIME =  \"lala }"; 
-      "namespace System { const TIME = 'aa' }" ] |> testOnDataShouldFail parse
+let ``Should reject when __main does not return Void``() = 
+    let test1 = "Int __main() { }"
+    [test1] |> testOnDataShouldFail compile

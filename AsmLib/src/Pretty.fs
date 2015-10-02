@@ -46,16 +46,6 @@ module Pretty =
         | BoolLit b -> 
             if b then "true"
             else "false"
-        | Def -> "def"
-        | Asm -> "asm"
-        | Namespace -> "namespace"
-        | Const -> "const"
-        | Using -> "using"
-        | For -> "for"
-        | While -> "while"
-        | Upto -> "upto"
-        | Var -> "var"
-        | Val -> "val"
     
     [<CompiledName("FormatPositionInError")>]
     let rec public print (tokens : List<Token>) : string = 

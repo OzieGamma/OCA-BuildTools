@@ -1,5 +1,5 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="UniquenessVerificatorTest.fs" company="Oswald Maskens">
+// <copyright file="TypeCheck.fs" company="Oswald Maskens">
 //   Copyright 2014 Oswald Maskens
 //   
 //   Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,27 +15,12 @@
 //   limitations under the License.
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
-module OCA.WaldoCompiler.Test.UniquenessVerificatorTest
+module OCA.WaldoCompiler.TypeCheck
 
-open NUnit.Framework
 open OCA.AsmLib
 open OCA.WaldoCompiler
 open OCA.WaldoCompiler.Parser
 open OFuncLib
 
-let pos = Position.addZero
-let p = Position.zero
-
-[<Test>]
-let ``UniquenessVerificator should detect two functions with the same name``() = 
-    [ DefFunction([], pos "main", [], pos Void, [])
-      DefFunction([], pos "main", [], pos (Identifier "Int"), []) ]
-    |> UniquenessVerificator.verify
-    |> shouldFail
-
-[<Test>]
-let ``UniquenessVerificator should accept two different functions``() = 
-    let data = 
-        [ DefFunction([], pos "main", [], pos Void, [])
-          DefFunction([], pos "other", [], pos Void, []) ]
-    [ data, data ] |> testOnDataMapAttempt UniquenessVerificator.verify
+let check (source : Tree) : GenericAttempt<Tree, Positioned<string>> = 
+    Ok source

@@ -26,7 +26,7 @@ let private compileFunction f =
     let rec compileFunctionInternals name body acc = 
         match body with
         | [] -> 
-            acc
+            Ok [ Position.addZero Ret ] :: acc
             |> Attempt.liftList
             |> Attempt.map List.rev
             |> Attempt.map (List.concat)
@@ -39,7 +39,9 @@ let private compileFunction f =
     | DefFunction(attr, Positioned(name, pos), args, retType, body) -> 
         compileFunctionInternals name body [ Ok [ Positioned(Label("func;" + name), pos) ] ]
     | AsmFunction(attr, Positioned(name, pos), args, retType, body) -> 
-        Ok(Positioned(Label("func;" + name), pos) :: body)
+        if body.IsEmpty then Fail [ Positioned("Asm function body can't be empty, 'ret' is the bare minimum", pos) ]
+        elif (body |> List.rev).Head.value <> Ret then Fail [ Positioned("Asm function has to finish with 'ret'", pos) ]
+        else Ok(Positioned(Label("func;" + name), pos) :: body)
 
 let emit (source : Tree) : PositionedListAttempt<Instr> = 
     let main, rest = source |> List.partition (fun decl -> decl.name = "__main")

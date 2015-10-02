@@ -41,16 +41,11 @@ type Token =
     | CharLit of char
     | StringLit of string
     | BoolLit of bool
-    | Def
-    | Asm
-    | Namespace
-    | Const
-    | Using
+    | RightArrow
+    | Ampersand
     | For
     | Upto
     | While
-    | Val
-    | Var
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 [<RequireQualifiedAccess>]
@@ -154,19 +149,13 @@ module Lexer =
     
     let private filterKeywords tok = 
         match tok with
-        | Id "asm" -> Asm
-        | Id "def" -> Def
-        | Id "namespace" -> Namespace
-        | Id "const" -> Const
-        | Id "using" -> Using
         | Id "while" -> While
         | Id "for" -> For
         | Id "upto" -> Upto
         | Operator "=" -> Equals
         | Id "true" -> BoolLit true
         | Id "false" -> BoolLit false
-        | Id "val" -> Val
-        | Id "var" -> Var
+        | Operator "->" -> RightArrow
         | _ -> tok
     
     // Imperative for performance reasons.

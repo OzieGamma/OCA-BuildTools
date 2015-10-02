@@ -269,7 +269,7 @@ module Instr =
         | Id "callr", _ -> true
         | Id "ret", _ -> true
         | Dot, Some(Id "word") -> true
-        | Dot, Some(Def) -> true
+        | Dot, Some(Id "def") -> true
         | Dot, Some(Id "text") -> true
         | Id _, Some Colon -> true
         | _ -> false
@@ -343,8 +343,8 @@ module Instr =
         | Id "callr" :: rA :: [] -> _Reg Callr rA
         | Id "ret" :: [] -> Ok Ret
         | Dot :: Id "word" :: i -> _Imm ImmWord i
-        | Dot :: Def :: Id label :: UIntLit value :: [] when isLabel label -> Ok(Define(label, value))
-        | Dot :: Def :: Id label :: IntLit value :: [] when isLabel label -> Ok(Define(label, value))
+        | Dot :: Id "def" :: Id label :: UIntLit value :: [] when isLabel label -> Ok(Define(label, value))
+        | Dot :: Id "def" :: Id label :: IntLit value :: [] when isLabel label -> Ok(Define(label, value))
         | Id label :: Colon :: [] when isLabel label -> Ok(Label label)
         | Dot :: Id "text" :: StringLit(s) :: [] -> Ok(Text s)
         | _ -> Fail [ sprintf "Unrecognized instruction %A" parts ]
@@ -406,7 +406,7 @@ module Instr =
         | Callr rA -> _Reg "callr" rA
         | Ret -> Ok(Id "ret" :: [])
         | ImmWord i -> imm i |> Attempt.map (fun i -> Dot :: Id "word" :: i)
-        | Define(label, v) -> Ok(Dot :: Def :: Id label :: UIntLit v :: [])
+        | Define(label, v) -> Ok(Dot :: Id "def" :: Id label :: UIntLit v :: [])
         | Label label -> Ok(Id label :: Colon :: [])
         | Text s -> Ok(Dot :: Id "text" :: StringLit s :: [])
     
